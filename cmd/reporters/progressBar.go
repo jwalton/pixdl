@@ -148,7 +148,11 @@ func (p *progressBarReporter) renderItem(entry *downloadingEntry, width int) {
 }
 
 func (p *progressBarReporter) getItemLabel(image *pixdl.ImageMetadata) string {
-	return fmt.Sprintf("%s (%d/%d)", path.Base(image.Filename), image.Index+1, image.Album.TotalImageCount)
+	outOf := "??"
+	if image.Album.TotalImageCount != -1 {
+		outOf = fmt.Sprintf("%d", image.Album.TotalImageCount)
+	}
+	return fmt.Sprintf("%s (%d/%s)", path.Base(image.Filename), image.Index+1, outOf)
 }
 
 func (p *progressBarReporter) AlbumFetch(url string) {
@@ -192,7 +196,7 @@ func (p *progressBarReporter) ImageProgress(
 		p.downloading[image.URL].progress = progress
 	} else {
 		p.downloading[image.URL] = &downloadingEntry{
-			label:    p.getItemLabel(image),
+			label:    "Getting: " + p.getItemLabel(image),
 			progress: progress,
 		}
 	}

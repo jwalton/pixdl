@@ -38,6 +38,11 @@ var getCmd = &cobra.Command{
 			log.LogFatal(err)
 		}
 
+		maxPages, err := cmd.Flags().GetInt("max-pages")
+		if err != nil {
+			log.LogFatal(err)
+		}
+
 		reporter := getReporter(verbose)
 
 		if toFolder == "" {
@@ -50,8 +55,13 @@ var getCmd = &cobra.Command{
 		// TODO: Add option for this.
 		maxConcurrency := uint(4)
 
+		options := pixdl.DownloadOptions{
+			ToFolder: toFolder,
+			MaxPages: maxPages,
+		}
+
 		downloader := pixdl.NewConcurrnetDownloader(pixdl.SetMaxConcurrency(maxConcurrency))
-		downloader.DownloadAlbum(url, toFolder, reporter)
+		downloader.DownloadAlbum(url, options, reporter)
 		downloader.Wait()
 		downloader.Close()
 
@@ -62,4 +72,5 @@ var getCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().StringP("out", "o", "", "Output directory to put files in")
+	getCmd.Flags().Int("max-pages", 0, "Maximum number of pages to download from album (0 for all)")
 }

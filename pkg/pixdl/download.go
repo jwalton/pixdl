@@ -3,7 +3,6 @@ package pixdl
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/jwalton/pixdl/pkg/download"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
+	"github.com/jwalton/pixdl/pkg/providers/env"
 )
 
 type AlbumMetadata = meta.AlbumMetadata
@@ -49,6 +49,7 @@ func getDownloadFilename(image *ImageMetadata, remoteInfo *download.RemoteFileIn
 	return filename, nil
 }
 
+// fileExists returns true if the local file already exists, false otherwise.
 func fileExists(filename string) (bool, error) {
 	// Verify image doesn't already exist before downloading
 	_, err := os.Stat(filename)
@@ -66,6 +67,7 @@ func fileExists(filename string) (bool, error) {
 // downloadImage downloads an image and saves it on disk.
 // `image` is the image to download, `toFolder` is the file to store it in.
 func downloadImage(
+	env *env.Env,
 	image *ImageMetadata,
 	toFolder string,
 	minSizeBytes int64,
@@ -79,13 +81,16 @@ func downloadImage(
 
 	albumMetadata := image.Album
 
-	req, err := http.NewRequest("GET", image.URL, nil)
+	req, err := env.NewGetRequest(image.URL)
 	if err != nil {
 		reporter.ImageSkip(image, err)
 		return err
 	}
 
-	req.Header.Set("User-Agent", "pixdl")
+	// TODO: Allow the provider pass back a set of headers with each image.
+	// This can handle things like sites that need a referrer, or sites
+	// that need authentication.
+	// req.Header.Set("User-Agent", "pixdl")
 
 	remoteInfo := image.RemoteInfo
 	if remoteInfo == nil {

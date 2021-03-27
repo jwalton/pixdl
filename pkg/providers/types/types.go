@@ -1,16 +1,30 @@
 package types
 
-import "github.com/jwalton/pixdl/pkg/pixdl/meta"
+import (
+	"github.com/jwalton/pixdl/pkg/pixdl/meta"
+	"github.com/jwalton/pixdl/pkg/providers/env"
+	"golang.org/x/net/html"
+)
 
-// Provider represents a back-end which can read album and image metadata
-// from a server.
-type Provider interface {
+// URLProvider represents a back-end which can read album and image metadata
+// from a server.  URLProvider differs from HTMLProvider in that it can
+// decide whether or not it can fetch an album given only a URL.
+type URLProvider interface {
 	// Name is the name of this provider.
 	Name() string
 	// CanDownload returns true if this Provider can fetch the specified URL.
 	CanDownload(url string) bool
 	// FetchAlbum will fetch all images in an album, and pass them to the ImageCallback.
-	FetchAlbum(url string, callback ImageCallback)
+	FetchAlbum(env *env.Env, url string, callback ImageCallback)
+}
+
+type HTMLProvider interface {
+	// Name is the name of this provider.
+	Name() string
+	// FetchAlbum will fetch all images in an album, and pass them to the ImageCallback.
+	// If this provider cannot download images from this album, returns `false`
+	// immediately.  If any images were successfully fetched, returns true.
+	FetchAlbumFromHTML(env *env.Env, url string, node *html.Node, callback ImageCallback) bool
 }
 
 // ImageCallback is a function called by a Provider for each image in an album.

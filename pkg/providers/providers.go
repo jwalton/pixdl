@@ -1,31 +1,23 @@
 package providers
 
 import (
-	"fmt"
-
 	"github.com/jwalton/pixdl/pkg/providers/imgur"
+	"github.com/jwalton/pixdl/pkg/providers/singleimage"
 	"github.com/jwalton/pixdl/pkg/providers/types"
 	"github.com/jwalton/pixdl/pkg/providers/web"
+	"github.com/jwalton/pixdl/pkg/providers/xenforo"
 )
 
-type Provider = types.Provider
+type URLProvider = types.URLProvider
+type HTMLProvider = types.HTMLProvider
 
-var providerRegistry = []Provider{
+var UrlProviderRegistry = []URLProvider{
 	imgur.Provider(),
+	singleimage.Provider(),
+}
+
+var HtmlProviderRegistry = []HTMLProvider{
+	xenforo.Provider(),
+	// Web will download just about anything, so it should always be last in this list.
 	web.Provider(),
-}
-
-func registerProvider(provider Provider) {
-	providerRegistry = append(providerRegistry, provider)
-}
-
-func GetProviderForURL(url string) (Provider, error) {
-	for index := range providerRegistry {
-		provider := providerRegistry[index]
-		if provider.CanDownload(url) {
-			return provider, nil
-		}
-	}
-
-	return nil, fmt.Errorf("Could not find suitable downloader for url: %s", url)
 }

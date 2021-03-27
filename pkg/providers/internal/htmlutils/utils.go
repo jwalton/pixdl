@@ -3,7 +3,10 @@ package htmlutils
 import (
 	"fmt"
 	"io"
+	"net/url"
+	"path"
 	"strconv"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -80,4 +83,92 @@ func SkipTokenContents(tokenizer *html.Tokenizer, tokenType string) error {
 	}
 
 	return nil
+}
+
+// GetTokenAttr returns the value for an attribute in a token, or "" if no such
+// attribute is present.
+func GetNodeAttr(node *html.Node, attrName string) string {
+	for index := range node.Attr {
+		if node.Attr[index].Key == attrName {
+			return node.Attr[index].Val
+		}
+	}
+
+	return ""
+}
+
+// GetNodeAttrMap returns a map of attributes for the given node.
+func GetNodeAttrMap(node *html.Node) map[string]string {
+	result := make(map[string]string, len(node.Attr))
+	for index := range node.Attr {
+		key := node.Attr[index].Key
+		val := node.Attr[index].Val
+		result[key] = val
+	}
+	return result
+}
+func NodeHasClass(node *html.Node, className string) bool {
+	classAttr := GetNodeAttr(node, "class")
+	return classAttr != "" && (classAttr == className ||
+		strings.HasPrefix(classAttr, className+" ") ||
+		strings.HasSuffix(classAttr, " "+className) ||
+		strings.Contains(classAttr, " "+className+" "))
+}
+
+func FindNodeById(node *html.Node, id string, maxDepth int) *html.Node {
+	if GetNodeAttr(node, "id") == id {
+		return node
+	}
+	if maxDepth == 1 {
+		return nil
+	}
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		cResult := FindNodeById(c, id, maxDepth-1)
+		if cResult != nil {
+			return cResult
+		}
+	}
+	return nil
+}
+
+// WalkNodesPreOrder calls `walker` on each node in pre-order.  If `walker` returns
+// false, the the given node's children will be skipped.
+func WalkNodesPreOrder(node *html.Node, walker func(*html.Node) bool) {
+	var f func(*html.Node)
+	f = func(node *html.Node) {
+		traverseChildren := walker(node)
+		if traverseChildren {
+			for c := node.FirstChild; c != nil; c = c.NextSibling {
+				f(c)
+			}
+		}
+	}
+	f(node)
+}
+
+func GetNodeTextContent(node *html.Node) string {
+	result := strings.Builder{}
+
+	WalkNodesPreOrder(node, func(node *html.Node) bool {
+		if node.Type == html.TextNode {
+			result.WriteString(node.Data)
+		}
+		return true
+	})
+
+	return result.String()
+}
+
+func ResolveURL(baseURL *url.URL, relativeURL string) string {
+	if strings.HasPrefix(relativeURL, "https://") || strings.HasPrefix(relativeURL, "http://") {
+		return relativeURL
+	} else {
+		destUrl := *baseURL
+		if path.IsAbs(relativeURL) {
+			destUrl.Path = relativeURL
+		} else {
+			destUrl.Path = path.Join(path.Dir(baseURL.Path), relativeURL)
+		}
+		return destUrl.String()
+	}
 }

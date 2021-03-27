@@ -4,18 +4,27 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"github.com/jwalton/pixdl/pkg/providers/env"
 )
 
 // TODO: Want options for things like login credentials, user agent, etc...
 
 const defaultMaxConcurrency = 4
 
+// DownloadOption is an object that can be passed to an ImageDownloader to
+// specify options when downloading an album.
+type DownloadOptions struct {
+	MaxPages int
+	ToFolder string
+}
+
 // ImageDownloader is an object that can download images.
 type ImageDownloader interface {
 	// DownloadAlbum will download all images in an album.
 	DownloadAlbum(
 		url string,
-		toFolder string,
+		options DownloadOptions,
 		reporter ProgressReporter,
 	)
 
@@ -35,6 +44,8 @@ type ImageDownloader interface {
 
 	// IsClosed will return true if this downloader has been closed.
 	IsClosed() bool
+
+	getEnv() *env.Env
 }
 
 type downloadRequest struct {
@@ -44,6 +55,7 @@ type downloadRequest struct {
 }
 
 type concurrentDownloader struct {
+	env            *env.Env
 	ch             chan *downloadRequest
 	albumWg        *sync.WaitGroup
 	imageWg        *sync.WaitGroup
@@ -77,6 +89,7 @@ func SetMaxConcurrency(maxConcurrency uint) Option {
 // the maximum number of concurrent downloads to allow at the same time.
 func NewConcurrnetDownloader(options ...Option) ImageDownloader {
 	downloader := &concurrentDownloader{
+		env:     &env.Env{DownloadClient: client},
 		ch:      nil,
 		albumWg: &sync.WaitGroup{},
 		imageWg: &sync.WaitGroup{},
@@ -107,6 +120,7 @@ func (downloader *concurrentDownloader) startImageWorker(ch <-chan *downloadRequ
 		req := <-ch
 		if req != nil {
 			downloadImage(
+				downloader.env,
 				req.image,
 				req.toFolder,
 				downloader.minSize,
@@ -121,12 +135,12 @@ func (downloader *concurrentDownloader) startImageWorker(ch <-chan *downloadRequ
 
 func (downloader *concurrentDownloader) DownloadAlbum(
 	url string,
-	toFolder string,
+	options DownloadOptions,
 	reporter ProgressReporter,
 ) {
 	downloader.albumWg.Add(1)
 	go func() {
-		downloadAlbum(downloader, url, toFolder, reporter)
+		downloadAlbum(downloader, url, options, reporter)
 		downloader.albumWg.Done()
 	}()
 }
@@ -161,4 +175,8 @@ func (downloader *concurrentDownloader) Close() {
 
 func (downloader *concurrentDownloader) IsClosed() bool {
 	return atomic.LoadInt32(&downloader.closed) == 1
+}
+
+func (downloader *concurrentDownloader) getEnv() *env.Env {
+	return downloader.env
 }

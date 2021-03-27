@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
+	"github.com/jwalton/pixdl/pkg/providers/env"
 	"github.com/jwalton/pixdl/pkg/providers/types"
 )
 
 // Provider returns a new Imgur provider.
-func Provider() types.Provider {
+func Provider() types.URLProvider {
 	return imgurProvider{}
 }
 
@@ -30,7 +30,7 @@ func (imgurProvider) CanDownload(url string) bool {
 	return imgurRegex.MatchString(url)
 }
 
-func (imgurProvider) FetchAlbum(url string, callback types.ImageCallback) {
+func (imgurProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
 	match := imgurRegex.FindStringSubmatch(url)
 	if match == nil {
 		callback(nil, nil, fmt.Errorf("Invalid imgur album: %s", url))
@@ -39,7 +39,7 @@ func (imgurProvider) FetchAlbum(url string, callback types.ImageCallback) {
 
 	albumID := match[2]
 
-	resp, err := http.Get("https://imgur.com/gallery/" + albumID + ".json")
+	resp, err := env.Get("https://imgur.com/gallery/" + albumID + ".json")
 	if err != nil {
 		callback(nil, nil, fmt.Errorf("Unable to fetch album: %s: %v", url, err))
 		return
@@ -95,6 +95,7 @@ func parseImages(album *meta.AlbumMetadata, images []imgurImage, callback types.
 				Size:      image.Size,
 				Timestamp: timestamp,
 				Index:     index,
+				Page:      1,
 			},
 			nil,
 		)

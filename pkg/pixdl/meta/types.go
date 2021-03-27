@@ -33,6 +33,8 @@ type ImageMetadata struct {
 	Timestamp *time.Time
 	// Index of this image within the album
 	Index int
+	// Page is the page number (1 based) this image was on.
+	Page int
 	// RemoteInfo is information about this file, obtained from DownloadClient.GetFileInfo().
 	// This is optional - you only need to provide it when creating an image if
 	// you already have it, so download doesn't need to get it again.

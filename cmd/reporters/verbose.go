@@ -28,7 +28,11 @@ func (p *verboseReporter) logError(message string, a ...interface{}) {
 }
 
 func (p *verboseReporter) getItemLabel(image *pixdl.ImageMetadata) string {
-	return fmt.Sprintf("(%d/%d) %s", image.Index+1, image.Album.TotalImageCount, path.Base(image.Filename))
+	outOf := "??"
+	if image.Album.TotalImageCount != -1 {
+		outOf = fmt.Sprintf("%d", image.Album.TotalImageCount)
+	}
+	return fmt.Sprintf("%s (%d/%s)", path.Base(image.Filename), image.Index+1, outOf)
 }
 
 func (p *verboseReporter) AlbumFetch(url string) {

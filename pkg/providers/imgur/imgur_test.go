@@ -167,6 +167,7 @@ func TestImgurParseAlbum(t *testing.T) {
 			Size:      2081928,
 			Timestamp: &t1,
 			Index:     0,
+			Page:      1,
 		},
 		{
 			Album:     album,
@@ -176,6 +177,7 @@ func TestImgurParseAlbum(t *testing.T) {
 			Size:      2632628,
 			Timestamp: &t2,
 			Index:     1,
+			Page:      1,
 		},
 	}
 

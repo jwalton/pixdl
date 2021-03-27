@@ -11,7 +11,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceFolder}",
-            "args": ["get", "-o", "./tmp", "https://cyberdrop.me/a/1NWW9hKC"],
+            "args": ["get", "-o", "./tmp", "https://www.cyclechat.net/threads/four-of-my-carlton-bikes.273364/"],
         }
     ]
 }
