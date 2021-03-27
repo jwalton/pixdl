@@ -33,7 +33,7 @@ func (imgurProvider) CanDownload(url string) bool {
 func (imgurProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
 	match := imgurRegex.FindStringSubmatch(url)
 	if match == nil {
-		callback(nil, nil, fmt.Errorf("Invalid imgur album: %s", url))
+		callback(nil, nil, fmt.Errorf("invalid imgur album: %s", url))
 		return
 	}
 
@@ -41,7 +41,7 @@ func (imgurProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCa
 
 	resp, err := env.Get("https://imgur.com/gallery/" + albumID + ".json")
 	if err != nil {
-		callback(nil, nil, fmt.Errorf("Unable to fetch album: %s: %v", url, err))
+		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: %v", url, err))
 		return
 	}
 
@@ -62,7 +62,7 @@ func parseAlbum(url string, albumID string, reader io.Reader, callback types.Ima
 		URL:     url,
 		AlbumID: albumID,
 		Name:    albumData.Data.Image.Title,
-		Author:  albumData.Data.Image.AccountUrl,
+		Author:  albumData.Data.Image.AccountURL,
 		// TotalImageCount will be -1 if the total image count is unknown.
 		TotalImageCount: int(albumData.Data.Image.AlbumImages.Count),
 	}

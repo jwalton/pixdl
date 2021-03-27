@@ -127,11 +127,12 @@ func TextImgurRegex(t *testing.T) {
 	match := imgurRegex.FindStringSubmatch("https://imgur.com/gallery/88wOh")
 	if match == nil {
 		t.Error("Expected URL to match")
+		return
 	}
 
-	albumId := match[2]
-	if albumId != "88wOh" {
-		t.Errorf("Expected albumID to be %v but got %v", "88wOh", albumId)
+	albumID := match[2]
+	if albumID != "88wOh" {
+		t.Errorf("expected albumID to be %v but got %v", "88wOh", albumID)
 	}
 }
 

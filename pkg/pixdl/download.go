@@ -14,12 +14,13 @@ import (
 	"github.com/jwalton/pixdl/pkg/providers/env"
 )
 
+// AlbumMetadata contains data about an album.
 type AlbumMetadata = meta.AlbumMetadata
+
+// ImageMetadata contains data about an image inside an album.
 type ImageMetadata = meta.ImageMetadata
 
-var NewImageMetadata = meta.NewImageMetadata
-
-var client = download.NewDownloadClient()
+var client = download.NewClient()
 
 // Return the file name to store the downloaded image in.
 func getDownloadFilename(image *ImageMetadata, remoteInfo *download.RemoteFileInfo) (string, error) {
@@ -32,18 +33,13 @@ func getDownloadFilename(image *ImageMetadata, remoteInfo *download.RemoteFileIn
 	if filename == "" {
 		u, err := url.Parse(image.URL)
 		if err != nil {
-			return filename, fmt.Errorf("Error parsing URL: %w", err)
+			return filename, fmt.Errorf("error parsing URL: %w", err)
 		}
 		filename = path.Base(u.Path)
 	}
 
 	if filename == "" {
-		// TODO: Do a HEAD request for the file, to figure out the filename
-		// from content-disposition.  We could let `grab` do this for us, but
-		// then there's no easy way to make this a ".part" file.  `grab` gives
-		// us no easy way to edit the filename.  Should maybe HEAD the file
-		// anyways as an easy way to get the file size.
-		return filename, fmt.Errorf("Could not determine name for file.")
+		return filename, fmt.Errorf("could not determine name for file")
 	}
 
 	return filename, nil
@@ -72,7 +68,7 @@ func downloadImage(
 	toFolder string,
 	minSizeBytes int64,
 	reporter ProgressReporter,
-) error {
+) {
 	var err error
 
 	if image == nil {
@@ -84,7 +80,7 @@ func downloadImage(
 	req, err := env.NewGetRequest(image.URL)
 	if err != nil {
 		reporter.ImageSkip(image, err)
-		return err
+		return
 	}
 
 	// TODO: Allow the provider pass back a set of headers with each image.
@@ -103,13 +99,19 @@ func downloadImage(
 		if reporter != nil {
 			reporter.ImageSkip(image, err)
 		}
-		return err
+		return
 	}
 	destFilename := filepath.Join(toFolder, basename)
 
 	// Make sure the destination directory exists.
 	destDir := filepath.Dir(destFilename)
-	os.MkdirAll(destDir, 0755)
+	err = os.MkdirAll(destDir, 0755)
+	if err != nil {
+		if reporter != nil {
+			reporter.ImageSkip(image, err)
+		}
+		return
+	}
 
 	// Verify image doesn't already exist before downloading
 	exists, err := fileExists(destFilename)
@@ -118,7 +120,7 @@ func downloadImage(
 		if reporter != nil {
 			reporter.ImageSkip(image, err)
 		}
-		return err
+		return
 	}
 
 	// If the image is beneath our minimum size threshold, skip it.
@@ -126,7 +128,7 @@ func downloadImage(
 		if (remoteInfo.Size > -1 && remoteInfo.Size < minSizeBytes) ||
 			(image.Size != -1 && image.Size < minSizeBytes) {
 			reporter.ImageSkip(image, nil)
-			return nil
+			return
 		}
 	}
 
@@ -138,7 +140,7 @@ func downloadImage(
 	// Get the file...
 	_, err = client.DoWithFileInfo(req, destFilename, remoteInfo, newDownloadProgressWrapper(reporter, albumMetadata, image))
 	if err != nil {
-		return err
+		return
 	}
 
 	// Update modified time, if the image has a timestamp.
@@ -146,6 +148,4 @@ func downloadImage(
 	if image.Timestamp != nil {
 		_ = os.Chtimes(destFilename, time.Now(), *image.Timestamp)
 	}
-
-	return nil
 }

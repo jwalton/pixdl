@@ -3,19 +3,15 @@ package pixdl
 import (
 	"github.com/jwalton/pixdl/pkg/providers"
 	"github.com/jwalton/pixdl/pkg/providers/env"
-	"github.com/jwalton/pixdl/pkg/providers/types"
 	"golang.org/x/net/html"
 )
-
-type URLProvider = types.URLProvider
-type HTMLProvider = types.HTMLProvider
 
 // getAlbumByURL tries to download the album using a URLProvider.  If a suitable
 // provider is found, this will return true.
 func getAlbumByURL(env *env.Env, url string, callback ImageCallback) bool {
 	defaultAlbum := &AlbumMetadata{URL: url}
 
-	for _, provider := range providers.UrlProviderRegistry {
+	for _, provider := range providers.URLProviderRegistry {
 		if provider.CanDownload(url) {
 			provider.FetchAlbum(
 				env,
@@ -51,7 +47,7 @@ func getAlbumWithHTML(env *env.Env, url string, callback ImageCallback) (bool, e
 		return false, err
 	}
 
-	for _, provider := range providers.HtmlProviderRegistry {
+	for _, provider := range providers.HTMLProviderRegistry {
 		if provider.FetchAlbumFromHTML(env, url, node, callback) {
 			return true, nil
 		}

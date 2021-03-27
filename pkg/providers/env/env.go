@@ -8,8 +8,10 @@ import (
 	"github.com/jwalton/pixdl/pkg/download"
 )
 
+// Env is a common "environment" object with utility functions and settings
+// information that is passed to all providers.
 type Env struct {
-	DownloadClient *download.DownloadClient
+	DownloadClient *download.Client
 }
 
 // NewGetRequest creates a new http GET request.
@@ -31,6 +33,7 @@ func (env *Env) Get(url string) (*http.Response, error) {
 	return http.DefaultClient.Do(req)
 }
 
+// GetFileInfo returns information about a file on a server.
 func (env *Env) GetFileInfo(url string) (*download.RemoteFileInfo, error) {
 	req, err := env.NewGetRequest(url)
 	if err != nil {

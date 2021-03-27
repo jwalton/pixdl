@@ -18,6 +18,8 @@ type URLProvider interface {
 	FetchAlbum(env *env.Env, url string, callback ImageCallback)
 }
 
+// HTMLProvider represents a back-end which can figure out if a given HTML document
+// represents an image album, and find images in that album.
 type HTMLProvider interface {
 	// Name is the name of this provider.
 	Name() string

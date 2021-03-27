@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// RemoteFileInfo represents information about a file on a remote server.
+// This is a collection of information useful in deciding how to download a file.
 type RemoteFileInfo struct {
 	// Size is the size of the file, or -1 if unknown.
 	Size      int64
@@ -29,7 +31,7 @@ func newRemoteFileInfo() *RemoteFileInfo {
 }
 
 // GetFileInfo is a convenience function for DoFileInfo.
-func (client *DownloadClient) GetFileInfo(url string) (*RemoteFileInfo, error) {
+func (client *Client) GetFileInfo(url string) (*RemoteFileInfo, error) {
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return newRemoteFileInfo(), err
@@ -40,7 +42,7 @@ func (client *DownloadClient) GetFileInfo(url string) (*RemoteFileInfo, error) {
 
 // DoFileInfo returns the length, mime type, last modified time, and other
 // interesting information about the resource for the specified request.
-func (client *DownloadClient) DoFileInfo(request *http.Request) (*RemoteFileInfo, error) {
+func (client *Client) DoFileInfo(request *http.Request) (*RemoteFileInfo, error) {
 	headReq := request
 
 	if headReq.Method != "HEAD" {

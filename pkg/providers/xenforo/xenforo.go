@@ -27,12 +27,12 @@ func (xenforoProvider) Name() string {
 
 var threadRegex = regexp.MustCompile(`(.*)/threads/(.*\.\d*)/(page-\d*)?`)
 
-func getPageFromUrl(url string) (string, int) {
+func getPageFromURL(url string) (string, int) {
 	match := threadRegex.FindStringSubmatch(url)
-	albumId := ""
+	albumID := ""
 	page := 1
 	if match != nil {
-		albumId = match[2]
+		albumID = match[2]
 		if match[3] == "" {
 			page = 1
 		} else {
@@ -43,27 +43,27 @@ func getPageFromUrl(url string) (string, int) {
 		}
 	}
 
-	return albumId, page
+	return albumID, page
 }
 
 func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *html.Node, callback types.ImageCallback) bool {
 	// Look for `<div id="top" class="p-pageWrapper">`.
-	topNode := htmlutils.FindNodeById(node, "top", 5)
+	topNode := htmlutils.FindNodeByID(node, "top", 5)
 	if !strings.Contains(htmlutils.GetNodeAttr(topNode, "class"), "p-pageWrapper") {
 		return false
 	}
 
-	albumId, page := getPageFromUrl(urlStr)
+	albumID, page := getPageFromURL(urlStr)
 
 	album := &meta.AlbumMetadata{
 		URL:             urlStr,
-		AlbumID:         albumId,
+		AlbumID:         albumID,
 		Name:            "", // TODO: Use page title
 		Author:          "",
 		TotalImageCount: -1,
 	}
 
-	parsedUrl, err := url.Parse(urlStr)
+	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return false
 	}
@@ -95,10 +95,9 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 			return
 		}
 
-		_, page = getPageFromUrl(nextLink)
+		_, page = getPageFromURL(nextLink)
 
-		nextPage := htmlutils.ResolveURL(parsedUrl, nextLink)
-		// TODO: Pass in HTTP client?  Want to set user-agent on these requests.
+		nextPage := htmlutils.ResolveURL(parsedURL, nextLink)
 		resp, err := env.Get(nextPage)
 		if err != nil {
 			albumErr = err
@@ -127,12 +126,12 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 				return false
 			}
 			if node.Type == html.ElementNode && node.Data == "li" && htmlutils.NodeHasClass(node, "attachment") {
-				image := parseAttachment(parsedUrl, node, album, page, index)
+				image := parseAttachment(parsedURL, node, album, page, index)
 				sendImage(image)
 				return false
 			}
 			if node.Type == html.ElementNode && node.Data == "img" && htmlutils.NodeHasClass(node, "bbImage") {
-				image := parseInlineImage(parsedUrl, node, album, page, index)
+				image := parseInlineImage(parsedURL, node, album, page, index)
 				sendImage(image)
 				return false
 			}
@@ -197,13 +196,13 @@ func parseDescriptionBlock(node *html.Node, album *meta.AlbumMetadata) {
 }
 
 func parseAttachment(
-	parsedUrl *url.URL,
+	parsedURL *url.URL,
 	node *html.Node,
 	album *meta.AlbumMetadata,
 	page int,
 	index int,
 ) *meta.ImageMetadata {
-	imageUrlPath := ""
+	imageURLPath := ""
 	imageName := ""
 
 	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
@@ -212,17 +211,17 @@ func parseAttachment(
 			return false
 		}
 		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
-			imageUrlPath = htmlutils.GetNodeAttr(node, "href")
+			imageURLPath = htmlutils.GetNodeAttr(node, "href")
 			return false
 		}
 		return true
 	})
 
-	if imageUrlPath != "" {
+	if imageURLPath != "" {
 		image := meta.NewImageMetadata(album, index)
 		image.Filename = imageName
 		image.Page = page
-		image.URL = htmlutils.ResolveURL(parsedUrl, imageUrlPath)
+		image.URL = htmlutils.ResolveURL(parsedURL, imageURLPath)
 		return image
 	}
 
@@ -230,7 +229,7 @@ func parseAttachment(
 }
 
 func parseInlineImage(
-	parsedUrl *url.URL,
+	parsedURL *url.URL,
 	node *html.Node,
 	album *meta.AlbumMetadata,
 	page int,
@@ -243,7 +242,7 @@ func parseInlineImage(
 		image := meta.NewImageMetadata(album, index)
 		image.Filename = alt
 		image.Page = page
-		image.URL = htmlutils.ResolveURL(parsedUrl, src)
+		image.URL = htmlutils.ResolveURL(parsedURL, src)
 		return image
 	}
 

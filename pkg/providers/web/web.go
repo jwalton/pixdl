@@ -119,38 +119,6 @@ func convertLinkToImage(env *env.Env, album *meta.AlbumMetadata, url string, tit
 	return image
 }
 
-func singleImageAlbum(urlStr string, fileInfo *download.RemoteFileInfo, callback types.ImageCallback) {
-	filename, err := getFilenameFromURL(urlStr)
-
-	if err != nil {
-		callback(nil, nil, err)
-	}
-
-	album := meta.AlbumMetadata{
-		URL:             urlStr,
-		AlbumID:         "",
-		TotalImageCount: 1,
-		Name:            filename,
-	}
-
-	image := meta.ImageMetadata{
-		URL:        urlStr,
-		Album:      &album,
-		Filename:   filename,
-		Title:      filename,
-		Size:       fileInfo.Size,
-		RemoteInfo: fileInfo,
-		Timestamp:  fileInfo.LastModified,
-		Index:      0,
-		Page:       1,
-	}
-
-	cont := callback(&album, &image, nil)
-	if cont {
-		callback(&album, nil, nil)
-	}
-}
-
 // This will call the callback with each possible image URL found, with the
 // width and height if available, or -1 for each if unavailable.  `elType`
 // will be either "img" or "src" depending on where this came from.
@@ -192,10 +160,10 @@ func findPossibleImageLinks(
 				attrs := htmlutils.GetNodeAttrMap(node)
 				width := htmlutils.GetNumericAttrFromMapWithDefault(attrs, "width", -1)
 				height := htmlutils.GetNumericAttrFromMapWithDefault(attrs, "height", -1)
-				src, _ := attrs["src"]
-				title, _ := attrs["alt"]
+				src := attrs["src"]
+				title := attrs["alt"]
 				if title == "" {
-					title, _ = attrs["title"]
+					title = attrs["title"]
 				}
 				if src != "" {
 					wantMore, _ := callback(src, "img", title, width, height, false, nil)
@@ -229,9 +197,9 @@ func checkIsImage(env *env.Env, url string) (bool, *download.RemoteFileInfo) {
 }
 
 func getFilenameFromURL(urlStr string) (string, error) {
-	parsedUrl, err := url.Parse(urlStr)
+	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
 	}
-	return path.Base(parsedUrl.Path), nil
+	return path.Base(parsedURL.Path), nil
 }

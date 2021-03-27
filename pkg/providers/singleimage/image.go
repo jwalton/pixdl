@@ -14,6 +14,7 @@ import (
 // Regex that matches known image/movie file extensions.
 var knownImageExtensions = regexp.MustCompile(`(?i)\.(jpg|jpeg|jpe|jif|jfif|jfi|png|bmp|tiff|tif|heic|heif|raw|cr2|jp2|j2k|jpf|jpx|jpm|mj2|gif|webm|mov|mp4|mkv|)^`)
 
+// IsImageByExtension returns true if the given URL appears to point to an image, based on the file extension.
 func IsImageByExtension(url string) bool {
 	return knownImageExtensions.MatchString(url)
 }
@@ -79,9 +80,9 @@ func singleImageAlbum(urlStr string, fileInfo *download.RemoteFileInfo, callback
 
 // TODO: Move this somewhere common?  Multiple providers implement this.
 func getFilenameFromURL(urlStr string) (string, error) {
-	parsedUrl, err := url.Parse(urlStr)
+	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return "", err
 	}
-	return path.Base(parsedUrl.Path), nil
+	return path.Base(parsedURL.Path), nil
 }

@@ -41,6 +41,7 @@ type ImageMetadata struct {
 	RemoteInfo *download.RemoteFileInfo
 }
 
+// NewImageMetadata is a helper function that constructs an ImageMetadata object.
 func NewImageMetadata(album *AlbumMetadata, index int) *ImageMetadata {
 	return &ImageMetadata{
 		Album: album,

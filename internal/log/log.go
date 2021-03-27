@@ -7,23 +7,23 @@ import (
 	"github.com/jwalton/gchalk"
 )
 
-// LogError writes an error message to stderr.
-func LogError(message interface{}) {
-	LogErrorf("%v", message)
+// PixdlError writes an error message to stderr.
+func PixdlError(message interface{}) {
+	PixdlErrorf("%v", message)
 }
 
-// LogErrorf writes a formatted error message to stderr.
-func LogErrorf(message string, a ...interface{}) {
+// PixdlErrorf writes a formatted error message to stderr.
+func PixdlErrorf(message string, a ...interface{}) {
 	os.Stderr.Write([]byte(gchalk.Stderr.BrightRed(fmt.Sprintf(message, a...)) + "\n"))
 }
 
-// LogFatal writes an error message to stderr, and then exits with a non-zero status code.
-func LogFatal(message interface{}) {
-	LogFatalf("%v", message)
+// PixdlFatal writes an error message to stderr, and then exits with a non-zero status code.
+func PixdlFatal(message interface{}) {
+	PixdlFatalf("%v", message)
 }
 
-// LogFatalf writes a  formatted error message to stderr, and then exits with a non-zero status code.
-func LogFatalf(message string, a ...interface{}) {
-	LogErrorf(message, a...)
+// PixdlFatalf writes a  formatted error message to stderr, and then exits with a non-zero status code.
+func PixdlFatalf(message string, a ...interface{}) {
+	PixdlErrorf(message, a...)
 	os.Exit(1)
 }

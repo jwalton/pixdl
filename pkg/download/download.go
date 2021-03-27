@@ -14,40 +14,42 @@ const partialSuffix = ".part"
 const defaultMaxRetries = 5
 const defaultRetryDelay = 5 * time.Second
 
-// DownloadClient is a client to use for downloading files.  Note that you must
-// construct a DownloadClient via `NewDownloadClient`.
-type DownloadClient struct {
+// Client is a client to use for downloading files.  Note that you must
+// construct a Client via `NewClient`.
+type Client struct {
 	httpClient *http.Client
-	MaxRetires uint
+	MaxRetries uint
 	RetryDelay time.Duration
 }
 
-type Option func(client *DownloadClient)
+// Option is an option that can be passed to NewClient.
+type Option func(client *Client)
 
-// WithClient is an option for NewDownloadClient that allows you to specify
+// WithClient is an option for NewClient that allows you to specify
 // the http.Client to use to download files.  If unspecified, the DownloadClient
 // will use http.DefaultClient.
 func WithClient(httpClient *http.Client) Option {
-	return func(client *DownloadClient) {
+	return func(client *Client) {
 		client.httpClient = httpClient
 	}
 }
 
-// MaxRetries is an option for NewDownloadClient that sets the maximum number
+// MaxRetries is an option for NewClient that sets the maximum number
 // of times the DownloadClient will attempt to download the same file before
 // giving up.  DownloadClient will only attempt to retry for "recoverable"
 // errors, such as 5xx errors from the server, or similar.
 func MaxRetries(retries uint) Option {
-	return func(client *DownloadClient) {
-		client.MaxRetires = retries
+	return func(client *Client) {
+		client.MaxRetries = retries
 	}
 }
 
-// NewDownloadClient creates a new DownloadClient.
-func NewDownloadClient(options ...Option) *DownloadClient {
-	client := &DownloadClient{
+// NewClient creates a new DownloadClient.
+func NewClient(options ...Option) *Client {
+	client := &Client{
 		httpClient: http.DefaultClient,
-		MaxRetires: defaultMaxRetries,
+		MaxRetries: defaultMaxRetries,
+		RetryDelay: defaultRetryDelay,
 	}
 
 	for _, option := range options {
@@ -58,7 +60,7 @@ func NewDownloadClient(options ...Option) *DownloadClient {
 }
 
 // GetFile downloads a file using a simple GET request to the specified URL.
-func (client *DownloadClient) GetFile(url string, filename string, reporter FileProgressCallback) (written int64, err error) {
+func (client *Client) GetFile(url string, filename string, reporter FileProgressCallback) (written int64, err error) {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		reporter(newErrorProgress(request, url, filename, nil, err))
@@ -68,7 +70,14 @@ func (client *DownloadClient) GetFile(url string, filename string, reporter File
 	return client.Do(request, filename, reporter)
 }
 
-func (client *DownloadClient) Do(
+// Do will execute an http.Request, similar to `http.Do`, but will save the result
+// to the specified filename, and will call `reporter` will progress as the file
+// is downloaded.  Do() will also automatically retry on errors, and will resume
+// a file if the transfer is interrupted.
+//
+// The file actually written to disk will be `filename.part` - the file will
+// be renamed to the final filename once the download is complete.
+func (client *Client) Do(
 	request *http.Request,
 	filename string,
 	reporter FileProgressCallback,
@@ -80,7 +89,7 @@ func (client *DownloadClient) Do(
 // remote server - this is handy when you've already fetched the file info.  If
 // you pass `nil` for remoteInfo, then DoWithFileInfo will still try to fetch
 // the RemoteFileInfo.
-func (client *DownloadClient) DoWithFileInfo(
+func (client *Client) DoWithFileInfo(
 	request *http.Request,
 	filename string,
 	remoteInfo *RemoteFileInfo,
@@ -94,7 +103,7 @@ func (client *DownloadClient) DoWithFileInfo(
 	pw := newProgressWriter(request, filename, remoteInfo, reporter)
 	var totalWritten int64 = 0
 
-	triesLeft := client.MaxRetires + 1
+	triesLeft := client.MaxRetries + 1
 	downloading := true
 	for downloading {
 		written, httpErr := client.doDownload(request, filename, remoteInfo, pw)
@@ -158,7 +167,7 @@ func openFileForWriting(filename string, canResume bool) (file *os.File, size in
 	return file, 0, nil
 }
 
-func (client *DownloadClient) doDownload(
+func (client *Client) doDownload(
 	request *http.Request,
 	filename string,
 	remoteInfo *RemoteFileInfo,
@@ -230,7 +239,7 @@ func (client *DownloadClient) doDownload(
 	return written, nil
 }
 
-func (client *DownloadClient) resumeDownload(request *http.Request, start int64, end int64) (*http.Response, error) {
+func (client *Client) resumeDownload(request *http.Request, start int64, end int64) (*http.Response, error) {
 	req := request.Clone(request.Context())
 	req.Header.Add("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 	return client.httpClient.Do(req)

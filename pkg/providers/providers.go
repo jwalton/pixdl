@@ -8,15 +8,14 @@ import (
 	"github.com/jwalton/pixdl/pkg/providers/xenforo"
 )
 
-type URLProvider = types.URLProvider
-type HTMLProvider = types.HTMLProvider
-
-var UrlProviderRegistry = []URLProvider{
+// URLProviderRegistry is a list of all URLProviders.
+var URLProviderRegistry = []types.URLProvider{
 	imgur.Provider(),
 	singleimage.Provider(),
 }
 
-var HtmlProviderRegistry = []HTMLProvider{
+// HTMLProviderRegistry is a list of all HTMLProviders.
+var HTMLProviderRegistry = []types.HTMLProvider{
 	xenforo.Provider(),
 	// Web will download just about anything, so it should always be last in this list.
 	web.Provider(),

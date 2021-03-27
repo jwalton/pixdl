@@ -30,17 +30,17 @@ var getCmd = &cobra.Command{
 
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
-			log.LogFatal(err)
+			log.PixdlFatal(err)
 		}
 
 		toFolder, err := cmd.Flags().GetString("out")
 		if err != nil {
-			log.LogFatal(err)
+			log.PixdlFatal(err)
 		}
 
 		maxPages, err := cmd.Flags().GetInt("max-pages")
 		if err != nil {
-			log.LogFatal(err)
+			log.PixdlFatal(err)
 		}
 
 		reporter := getReporter(verbose)
@@ -48,7 +48,7 @@ var getCmd = &cobra.Command{
 		if toFolder == "" {
 			toFolder, err = os.Getwd()
 			if err != nil {
-				log.LogFatalf("Unable to determine working directory: %v", err)
+				log.PixdlFatalf("Unable to determine working directory: %v", err)
 			}
 		}
 

@@ -12,7 +12,7 @@ import (
 
 const defaultMaxConcurrency = 4
 
-// DownloadOption is an object that can be passed to an ImageDownloader to
+// DownloadOptions is an object that can be passed to an ImageDownloader to
 // specify options when downloading an album.
 type DownloadOptions struct {
 	MaxPages int
@@ -64,6 +64,7 @@ type concurrentDownloader struct {
 	minSize        int64
 }
 
+// Option is an option that can be passed to NewConcurrnetDownloader().
 type Option func(*concurrentDownloader)
 
 // SetMinSize is an option that sets the minimum size, in bytes, of files to download.
@@ -75,6 +76,8 @@ func SetMinSize(size int64) Option {
 	}
 }
 
+// SetMaxConcurrency is an option for NewConcurrnetDownloader which sets the
+// maximum number of goroutines which will be spawned to download files.
 func SetMaxConcurrency(maxConcurrency uint) Option {
 	return func(dl *concurrentDownloader) {
 		if dl.ch == nil && maxConcurrency > 0 {
@@ -114,7 +117,7 @@ func NewConcurrnetDownloader(options ...Option) ImageDownloader {
 // channel, and downloads any images sent to the channel.  If the channel
 // closes, the image worker will finish up the images it is working on, and
 // then terminate.
-func (downloader *concurrentDownloader) startImageWorker(ch <-chan *downloadRequest, workerId uint) {
+func (downloader *concurrentDownloader) startImageWorker(ch <-chan *downloadRequest, workerID uint) {
 	done := false
 	for !done {
 		req := <-ch
@@ -151,7 +154,7 @@ func (downloader *concurrentDownloader) DownloadImage(
 	reporter ProgressReporter,
 ) {
 	if downloader.IsClosed() {
-		reporter.ImageSkip(image, fmt.Errorf("Downloader closed"))
+		reporter.ImageSkip(image, fmt.Errorf("downloader closed"))
 	} else {
 		downloader.imageWg.Add(1)
 		downloader.ch <- &downloadRequest{image, toFolder, reporter}

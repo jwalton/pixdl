@@ -11,6 +11,8 @@ import (
 	"golang.org/x/net/html"
 )
 
+// TODO: Write test cases for this file.
+
 // GetTokenAttr returns the value for an attribute in a token, or "" if no such
 // attribute is present.
 func GetTokenAttr(t html.Token, attrName string) string {
@@ -23,16 +25,8 @@ func GetTokenAttr(t html.Token, attrName string) string {
 	return ""
 }
 
-func GetAttrMap(t html.Token) map[string]string {
-	result := make(map[string]string, len(t.Attr))
-	for index := range t.Attr {
-		key := t.Attr[index].Key
-		val := t.Attr[index].Val
-		result[key] = val
-	}
-	return result
-}
-
+// GetNumericAttrFromMapWithDefault parses an attribute to a number, and returns
+// the value, or returns `def` if the value is not present or cannot be parsed.
 func GetNumericAttrFromMapWithDefault(attrMap map[string]string, attrName string, def int64) int64 {
 	valStr, ok := attrMap[attrName]
 	if !ok {
@@ -85,7 +79,7 @@ func SkipTokenContents(tokenizer *html.Tokenizer, tokenType string) error {
 	return nil
 }
 
-// GetTokenAttr returns the value for an attribute in a token, or "" if no such
+// GetNodeAttr returns the value for an attribute in a node, or "" if no such
 // attribute is present.
 func GetNodeAttr(node *html.Node, attrName string) string {
 	for index := range node.Attr {
@@ -107,6 +101,8 @@ func GetNodeAttrMap(node *html.Node) map[string]string {
 	}
 	return result
 }
+
+// NodeHasClass returns true if the given element code has the specified class.
 func NodeHasClass(node *html.Node, className string) bool {
 	classAttr := GetNodeAttr(node, "class")
 	return classAttr != "" && (classAttr == className ||
@@ -115,7 +111,10 @@ func NodeHasClass(node *html.Node, className string) bool {
 		strings.Contains(classAttr, " "+className+" "))
 }
 
-func FindNodeById(node *html.Node, id string, maxDepth int) *html.Node {
+// FindNodeByID searches the tree rooted at "node" for a node with the "id"
+// attribute with the specified value.  Returns the node, or nil if no
+// such node is found.
+func FindNodeByID(node *html.Node, id string, maxDepth int) *html.Node {
 	if GetNodeAttr(node, "id") == id {
 		return node
 	}
@@ -123,7 +122,7 @@ func FindNodeById(node *html.Node, id string, maxDepth int) *html.Node {
 		return nil
 	}
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		cResult := FindNodeById(c, id, maxDepth-1)
+		cResult := FindNodeByID(c, id, maxDepth-1)
 		if cResult != nil {
 			return cResult
 		}
@@ -146,6 +145,7 @@ func WalkNodesPreOrder(node *html.Node, walker func(*html.Node) bool) {
 	f(node)
 }
 
+// GetNodeTextContent returns the text content of a node.
 func GetNodeTextContent(node *html.Node) string {
 	result := strings.Builder{}
 
@@ -159,16 +159,19 @@ func GetNodeTextContent(node *html.Node) string {
 	return result.String()
 }
 
+// ResolveURL resolves a URL relative to a parsed URL.
+// For example, calling `ResolveURL("http://foo.com/bar", "../baz")` would return
+// "http://foo.com/baz".
 func ResolveURL(baseURL *url.URL, relativeURL string) string {
 	if strings.HasPrefix(relativeURL, "https://") || strings.HasPrefix(relativeURL, "http://") {
 		return relativeURL
-	} else {
-		destUrl := *baseURL
-		if path.IsAbs(relativeURL) {
-			destUrl.Path = relativeURL
-		} else {
-			destUrl.Path = path.Join(path.Dir(baseURL.Path), relativeURL)
-		}
-		return destUrl.String()
 	}
+
+	resolvedURL := *baseURL
+	if path.IsAbs(relativeURL) {
+		resolvedURL.Path = relativeURL
+	} else {
+		resolvedURL.Path = path.Join(path.Dir(baseURL.Path), relativeURL)
+	}
+	return resolvedURL.String()
 }

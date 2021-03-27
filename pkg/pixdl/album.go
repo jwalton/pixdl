@@ -9,6 +9,14 @@ import (
 	"github.com/jwalton/pixdl/pkg/providers/types"
 )
 
+// ImageCallback is a function called by a Provider for each image in an album.
+// This will be called once for each image, and then with `album, nil, nil` when
+// there are no more images.
+//
+// If an error occurs fetching images, this will be called with err set.
+//
+// Implemnetations can return false to stop the Provider from providing any
+// further images.
 type ImageCallback = types.ImageCallback
 
 // getAlbum will fetch all images in an album, and pass each one to the callback.
@@ -51,7 +59,7 @@ func getAlbum(env *env.Env, url string, callback ImageCallback) {
 	}
 
 	if !handled {
-		callback(defaultAlbum, nil, fmt.Errorf("Could not find a suitable provider to download album"))
+		callback(defaultAlbum, nil, fmt.Errorf("could not find a suitable provider to download album"))
 	}
 }
 

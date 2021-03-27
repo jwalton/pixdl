@@ -5,7 +5,7 @@ type imgurGalleryResponse struct {
 		Image struct {
 			ID          int64  `json:"id"`
 			Hash        string `json:"hash"`
-			AccountUrl  string `json:"account_url"`
+			AccountURL  string `json:"account_url"`
 			Title       string `json:"title"`
 			AlbumImages struct {
 				Count  int64        `json:"count"`

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/term"
 )
 
-const MAX_WIDTH = 100
+const maxWidth = 100
 
 var progressBarForeground = gchalk.WithBgCyan().Black
 var progressBarBackground = gchalk.WithBgBrightBlack().BrightWhite
@@ -47,8 +47,8 @@ func (p *progressBarReporter) getScreenSize() (width int, height int) {
 		height = p.height
 	}
 
-	if width > MAX_WIDTH {
-		width = MAX_WIDTH
+	if width > maxWidth {
+		width = maxWidth
 	}
 
 	p.width = width
@@ -95,14 +95,6 @@ func (p *progressBarReporter) render(message string) {
 
 	p.linesToErase = len(items)
 
-}
-
-func (p *progressBarReporter) lineToWidth(message string, width int) string {
-	if len(message) > width {
-		message = message[:width]
-	}
-
-	return message + strings.Repeat(" ", width-len(message))
 }
 
 func (p *progressBarReporter) renderItem(entry *downloadingEntry, width int) {
