@@ -122,7 +122,9 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 				return false
 			}
 			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "p-body-header") {
-				parseAlbumInfo(node, album)
+				if getAlbum {
+					parseAlbumInfo(node, album)
+				}
 				return false
 			}
 			if node.Type == html.ElementNode && node.Data == "li" && htmlutils.NodeHasClass(node, "attachment") {
