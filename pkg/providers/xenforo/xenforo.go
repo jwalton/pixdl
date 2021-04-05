@@ -1,7 +1,6 @@
 package xenforo
 
 import (
-	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -78,7 +77,6 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 			_, seen := seenURLs[image.URL]
 			if !seen {
 				seenURLs[image.URL] = struct{}{}
-				fmt.Printf("Image index: %d page: %d %s\n", index, image.Page, image.URL)
 				running = callback(album, image, nil)
 				index++
 			}

@@ -1,7 +1,6 @@
 package htmlutils
 
 import (
-	"fmt"
 	"io"
 	"net/url"
 	"path"
@@ -57,21 +56,16 @@ func SkipTokenContents(tokenizer *html.Tokenizer, tokenType string) error {
 
 		switch tokenType {
 		case html.StartTagToken:
-			fmt.Printf("%d: Skipping %s\n", len(stack), token.Data)
 			if token.Data != "br" && token.Data != "img" {
 				stack = append(stack, token.Data)
 			}
-		case html.SelfClosingTagToken:
-			fmt.Printf("%d: Self %s\n", len(stack), token.Data)
 		case html.EndTagToken:
-			fmt.Printf("%d: End %s\n", len(stack), token.Data)
 			stackLen := len(stack)
 			if stack[stackLen-1] == token.Data {
 				stack = stack[0 : stackLen-1]
 			} else {
 				// This will happen if there's a spurious close tag in the
 				// source we're reading.
-				fmt.Printf("Unexpected %s\n", token.Data)
 			}
 		}
 	}
