@@ -55,9 +55,10 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 	albumID, page := getPageFromURL(urlStr)
 
 	album := &meta.AlbumMetadata{
+		Provider:        "xenforo",
 		URL:             urlStr,
 		AlbumID:         albumID,
-		Name:            "", // TODO: Use page title
+		Name:            urlStr, // TODO: Use page title
 		Author:          "",
 		TotalImageCount: -1,
 	}
@@ -142,6 +143,13 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 				}
 				return false
 			}
+			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
+				// js-lbImage can show up in an attachment, but also in a `bbWrapper` div, where there's just
+				// a whole bunch of js-lbImage with no other metadata.
+				image := parseLBImage(parsedURL, node, album, page, index)
+				sendImage(image)
+				return false
+			}
 			return true
 		})
 	}
@@ -213,6 +221,38 @@ func parseAttachment(
 		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
 			imageURLPath = htmlutils.GetNodeAttr(node, "href")
 			return false
+		}
+		return true
+	})
+
+	if imageURLPath != "" {
+		image := meta.NewImageMetadata(album, index)
+		image.Filename = imageName
+		image.Page = page
+		image.URL = htmlutils.ResolveURL(parsedURL, imageURLPath)
+		return image
+	}
+
+	return nil
+}
+
+func parseLBImage(
+	parsedURL *url.URL,
+	node *html.Node,
+	album *meta.AlbumMetadata,
+	page int,
+	index int,
+) *meta.ImageMetadata {
+	imageURLPath := ""
+	imageName := ""
+
+	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
+		if node.Type == html.ElementNode && node.Data == "img" {
+			imageName = strings.TrimSpace(htmlutils.GetNodeAttr(node, "alt"))
+			return false
+		}
+		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
+			imageURLPath = htmlutils.GetNodeAttr(node, "href")
 		}
 		return true
 	})

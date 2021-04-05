@@ -59,10 +59,11 @@ func parseAlbum(url string, albumID string, reader io.Reader, callback types.Ima
 	}
 
 	album := &meta.AlbumMetadata{
-		URL:     url,
-		AlbumID: albumID,
-		Name:    albumData.Data.Image.Title,
-		Author:  albumData.Data.Image.AccountURL,
+		Provider: "imgur",
+		URL:      url,
+		AlbumID:  albumID,
+		Name:     albumData.Data.Image.Title,
+		Author:   albumData.Data.Image.AccountURL,
 		// TotalImageCount will be -1 if the total image count is unknown.
 		TotalImageCount: int(albumData.Data.Image.AlbumImages.Count),
 	}

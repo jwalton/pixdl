@@ -12,6 +12,8 @@ type AlbumMetadata struct {
 	AlbumID string
 	Name    string
 	Author  string
+	// Provider is the name of the provider which generated this album
+	Provider string
 	// TotalImageCount will be -1 if the total image count is unknown.
 	TotalImageCount int
 }

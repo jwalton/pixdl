@@ -54,6 +54,7 @@ func singleImageAlbum(urlStr string, fileInfo *download.RemoteFileInfo, callback
 	}
 
 	album := meta.AlbumMetadata{
+		Provider:        "singleimage",
 		URL:             urlStr,
 		AlbumID:         "",
 		TotalImageCount: 1,

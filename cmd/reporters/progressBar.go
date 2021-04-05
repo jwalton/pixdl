@@ -153,7 +153,8 @@ func (p *progressBarReporter) AlbumFetch(url string) {
 }
 
 func (p *progressBarReporter) AlbumStart(album *pixdl.AlbumMetadata) {
-	// Ignore
+	message := fmt.Sprintf("%s %s (%s) ", gchalk.BrightBlue("Starting:"), album.Name, album.Provider)
+	p.render(message)
 }
 
 func (p *progressBarReporter) AlbumEnd(album *pixdl.AlbumMetadata, err error) {

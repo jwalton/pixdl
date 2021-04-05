@@ -33,6 +33,7 @@ func (webProvider) Name() string {
 
 func (webProvider) FetchAlbumFromHTML(env *env.Env, url string, node *html.Node, callback types.ImageCallback) bool {
 	album := &meta.AlbumMetadata{
+		Provider:        "web",
 		URL:             url,
 		AlbumID:         url,
 		Name:            "", // TODO: Use page title
