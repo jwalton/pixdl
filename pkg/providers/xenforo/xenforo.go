@@ -48,7 +48,7 @@ func getPageFromURL(url string) (string, int) {
 func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *html.Node, callback types.ImageCallback) bool {
 	// Look for `<div id="top" class="p-pageWrapper">`.
 	topNode := htmlutils.FindNodeByID(node, "top", 5)
-	if !strings.Contains(htmlutils.GetNodeAttr(topNode, "class"), "p-pageWrapper") {
+	if !strings.Contains(htmlutils.GetAttr(topNode.Attr, "class"), "p-pageWrapper") {
 		return false
 	}
 
@@ -120,30 +120,30 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 			if !running {
 				return false
 			}
-			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "p-body-header") {
+			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "p-body-header") {
 				if getAlbum {
 					parseAlbumInfo(node, album)
 				}
 				return false
 			}
-			if node.Type == html.ElementNode && node.Data == "li" && htmlutils.NodeHasClass(node, "attachment") {
+			if node.Type == html.ElementNode && node.Data == "li" && htmlutils.HasClass(node.Attr, "attachment") {
 				image := parseAttachment(parsedURL, node, album, page, index)
 				sendImage(image)
 				return false
 			}
-			if node.Type == html.ElementNode && node.Data == "img" && htmlutils.NodeHasClass(node, "bbImage") {
+			if node.Type == html.ElementNode && node.Data == "img" && htmlutils.HasClass(node.Attr, "bbImage") {
 				image := parseInlineImage(parsedURL, node, album, page, index)
 				sendImage(image)
 				return false
 			}
-			if node.Type == html.ElementNode && node.Data == "div" && htmlutils.NodeHasClass(node, "block-outer--after") {
+			if node.Type == html.ElementNode && node.Data == "div" && htmlutils.HasClass(node.Attr, "block-outer--after") {
 				nextLink := findNextLink(node)
 				if nextLink != "" {
 					handleNextPage(nextLink)
 				}
 				return false
 			}
-			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
+			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "js-lbImage") {
 				// js-lbImage can show up in an attachment, but also in a `bbWrapper` div, where there's just
 				// a whole bunch of js-lbImage with no other metadata.
 				image := parseLBImage(parsedURL, node, album, page, index)
@@ -167,11 +167,11 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 
 func parseAlbumInfo(node *html.Node, album *meta.AlbumMetadata) {
 	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
-		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "p-description") {
+		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "p-description") {
 			parseDescriptionBlock(node, album)
 			return false
 		}
-		if node.Type == html.ElementNode && node.Data == "h1" && htmlutils.NodeHasClass(node, "p-title-value") {
+		if node.Type == html.ElementNode && node.Data == "h1" && htmlutils.HasClass(node.Attr, "p-title-value") {
 			album.Name = htmlutils.GetNodeTextContent(node)
 			return false
 		}
@@ -186,12 +186,12 @@ func parseAlbumInfo(node *html.Node, album *meta.AlbumMetadata) {
 
 func parseDescriptionBlock(node *html.Node, album *meta.AlbumMetadata) {
 	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
-		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "username") {
+		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "username") {
 			album.Author = htmlutils.GetNodeTextContent(node)
 			return false
 		}
 		// if node.Type == html.ElementNode && node.Data == "time" {
-		// 	timestampStr := htmlutils.GetNodeAttr(node, "data-time")
+		// 	timestampStr := htmlutils.GetAttr(node.Attr, "data-time")
 		// 	unixTimestamp, err := strconv.ParseInt(timestampStr, 10, 64)
 		// 	if err != nil {
 		// 		timestamp := time.Unix(unixTimestamp, 0)
@@ -214,12 +214,12 @@ func parseAttachment(
 	imageName := ""
 
 	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
-		if node.Type == html.ElementNode && node.Data == "div" && htmlutils.NodeHasClass(node, "attachment-name") {
+		if node.Type == html.ElementNode && node.Data == "div" && htmlutils.HasClass(node.Attr, "attachment-name") {
 			imageName = strings.TrimSpace(htmlutils.GetNodeTextContent(node))
 			return false
 		}
-		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
-			imageURLPath = htmlutils.GetNodeAttr(node, "href")
+		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "js-lbImage") {
+			imageURLPath = htmlutils.GetAttr(node.Attr, "href")
 			return false
 		}
 		return true
@@ -248,11 +248,11 @@ func parseLBImage(
 
 	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
 		if node.Type == html.ElementNode && node.Data == "img" {
-			imageName = strings.TrimSpace(htmlutils.GetNodeAttr(node, "alt"))
+			imageName = strings.TrimSpace(htmlutils.GetAttr(node.Attr, "alt"))
 			return false
 		}
-		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "js-lbImage") {
-			imageURLPath = htmlutils.GetNodeAttr(node, "href")
+		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "js-lbImage") {
+			imageURLPath = htmlutils.GetAttr(node.Attr, "href")
 		}
 		return true
 	})
@@ -275,8 +275,8 @@ func parseInlineImage(
 	page int,
 	index int,
 ) *meta.ImageMetadata {
-	src := htmlutils.GetNodeAttr(node, "src")
-	alt := htmlutils.GetNodeAttr(node, "alt")
+	src := htmlutils.GetAttr(node.Attr, "src")
+	alt := htmlutils.GetAttr(node.Attr, "alt")
 
 	if src != "" && src != "#" {
 		image := meta.NewImageMetadata(album, index)
@@ -293,8 +293,8 @@ func findNextLink(node *html.Node) string {
 	nextLink := ""
 
 	htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
-		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.NodeHasClass(node, "pageNav-jump--next") {
-			nextLink = htmlutils.GetNodeAttr(node, "href")
+		if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "pageNav-jump--next") {
+			nextLink = htmlutils.GetAttr(node.Attr, "href")
 			return false
 		}
 		if nextLink != "" {

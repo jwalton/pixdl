@@ -142,7 +142,7 @@ func findPossibleImageLinks(
 				// Skip everything in the nav.
 				return false
 			case "a":
-				href := htmlutils.GetNodeAttr(node, "href")
+				href := htmlutils.GetAttr(node.Attr, "href")
 				if href != "" && !strings.HasPrefix(href, "#") {
 					title := htmlutils.GetNodeTextContent(node)
 					wantMore, isImage := callback(href, "a", title, -1, -1, false, nil)
@@ -158,7 +158,7 @@ func findPossibleImageLinks(
 					}
 				}
 			case "img":
-				attrs := htmlutils.GetNodeAttrMap(node)
+				attrs := htmlutils.GetAttrMap(node.Attr)
 				width := htmlutils.GetNumericAttrFromMapWithDefault(attrs, "width", -1)
 				height := htmlutils.GetNumericAttrFromMapWithDefault(attrs, "height", -1)
 				src := attrs["src"]

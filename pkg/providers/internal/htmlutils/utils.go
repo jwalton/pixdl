@@ -12,18 +12,6 @@ import (
 
 // TODO: Write test cases for this file.
 
-// GetTokenAttr returns the value for an attribute in a token, or "" if no such
-// attribute is present.
-func GetTokenAttr(t html.Token, attrName string) string {
-	for index := range t.Attr {
-		if t.Attr[index].Key == attrName {
-			return t.Attr[index].Val
-		}
-	}
-
-	return ""
-}
-
 // GetNumericAttrFromMapWithDefault parses an attribute to a number, and returns
 // the value, or returns `def` if the value is not present or cannot be parsed.
 func GetNumericAttrFromMapWithDefault(attrMap map[string]string, attrName string, def int64) int64 {
@@ -73,32 +61,31 @@ func SkipTokenContents(tokenizer *html.Tokenizer, tokenType string) error {
 	return nil
 }
 
-// GetNodeAttr returns the value for an attribute in a node, or "" if no such
-// attribute is present.
-func GetNodeAttr(node *html.Node, attrName string) string {
-	for index := range node.Attr {
-		if node.Attr[index].Key == attrName {
-			return node.Attr[index].Val
+// GetAttr returns the value for an attribute, or "" if no such attribute is present.
+func GetAttr(attributes []html.Attribute, attrName string) string {
+	for index := range attributes {
+		if attributes[index].Key == attrName {
+			return attributes[index].Val
 		}
 	}
 
 	return ""
 }
 
-// GetNodeAttrMap returns a map of attributes for the given node.
-func GetNodeAttrMap(node *html.Node) map[string]string {
-	result := make(map[string]string, len(node.Attr))
-	for index := range node.Attr {
-		key := node.Attr[index].Key
-		val := node.Attr[index].Val
+// GetAttrMap returns a map of attributes by name.
+func GetAttrMap(attributes []html.Attribute) map[string]string {
+	result := make(map[string]string, len(attributes))
+	for index := range attributes {
+		key := attributes[index].Key
+		val := attributes[index].Val
 		result[key] = val
 	}
 	return result
 }
 
-// NodeHasClass returns true if the given element code has the specified class.
-func NodeHasClass(node *html.Node, className string) bool {
-	classAttr := GetNodeAttr(node, "class")
+// HasClass returns true if the given element has the specified class.
+func HasClass(attributes []html.Attribute, className string) bool {
+	classAttr := GetAttr(attributes, "class")
 	return classAttr != "" && (classAttr == className ||
 		strings.HasPrefix(classAttr, className+" ") ||
 		strings.HasSuffix(classAttr, " "+className) ||
@@ -109,7 +96,7 @@ func NodeHasClass(node *html.Node, className string) bool {
 // attribute with the specified value.  Returns the node, or nil if no
 // such node is found.
 func FindNodeByID(node *html.Node, id string, maxDepth int) *html.Node {
-	if GetNodeAttr(node, "id") == id {
+	if GetAttr(node.Attr, "id") == id {
 		return node
 	}
 	if maxDepth == 1 {
