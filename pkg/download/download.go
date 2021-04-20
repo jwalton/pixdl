@@ -205,7 +205,11 @@ func (client *Client) doDownload(
 		return 0, &httpError{canRetry: false, message: fmt.Sprintf("Server replied with %d", resp.StatusCode)}
 	}
 
-	pw.progress.Total = existingSize + getContentLength(resp)
+	if resp.ContentLength > -1 {
+		pw.progress.Total = existingSize + resp.ContentLength
+	} else {
+		pw.progress.Total = -1
+	}
 
 	// Copy data from the HTTP request to the file.
 	written, err = io.Copy(file, io.TeeReader(resp.Body, pw))

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -59,39 +58,18 @@ func (client *Client) DoFileInfo(request *http.Request) (*RemoteFileInfo, error)
 
 	defer resp.Body.Close()
 
-	size := getContentLength(resp)
 	resume := false
-	if size > -1 {
+	if resp.ContentLength > -1 {
 		resume = canResume(resp)
 	}
 
 	return &RemoteFileInfo{
-		size,
+		resp.ContentLength,
 		getFilename(resp),
 		parseContentType(resp.Header.Get("content-type")),
 		resume,
 		getLastModified(resp),
 	}, nil
-}
-
-func getContentLength(resp *http.Response) int64 {
-	var contentLength int64
-
-	lenStr := resp.Header.Get("content-length")
-	if lenStr == "" {
-		contentLength = -1
-	} else {
-		var err error
-		if contentLength, err = strconv.ParseInt(lenStr, 10, 64); err != nil {
-			contentLength = -1
-		}
-	}
-
-	if contentLength < 0 {
-		contentLength = -1
-	}
-
-	return contentLength
 }
 
 var contentDispositionRegex = regexp.MustCompile(`^attachment;.*filename="([^"]*)".*$`)

@@ -100,6 +100,9 @@ func (p *progressBarReporter) render(message string) {
 func (p *progressBarReporter) renderItem(entry *downloadingEntry, width int) {
 	label := entry.label
 	complete := fmt.Sprintf("%.2f%%", entry.progress.PercentComplete)
+	if entry.progress.Total == -1 {
+		complete = ""
+	}
 
 	strWidth := len(label) + len(complete) + 2 // +1 for space, +1 for left margin.
 	maxWidth := width - 1
@@ -158,7 +161,10 @@ func (p *progressBarReporter) AlbumStart(album *pixdl.AlbumMetadata) {
 }
 
 func (p *progressBarReporter) AlbumEnd(album *pixdl.AlbumMetadata, err error) {
-	// Ignore
+	if err != nil {
+		message := fmt.Sprintf("%s Error downloading: %s: %v", gchalk.BrightRed("Error   :"), album.Name, err)
+		p.render(message)
+	}
 }
 
 func (p *progressBarReporter) ImageSkip(image *pixdl.ImageMetadata, err error) {

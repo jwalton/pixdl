@@ -44,7 +44,7 @@ func (p *verboseReporter) AlbumStart(album *pixdl.AlbumMetadata) {
 	if name == "" {
 		name = album.URL
 	}
-	p.log("Starting album: %s", name)
+	p.log("Starting album: %s (%s)", name, album.Provider)
 }
 
 func (p *verboseReporter) AlbumEnd(album *pixdl.AlbumMetadata, err error) {
@@ -72,7 +72,9 @@ func (p *verboseReporter) ImageStart(image *pixdl.ImageMetadata) {
 }
 
 func (p *verboseReporter) ImageProgress(image *pixdl.ImageMetadata, progress *download.Progress) {
-	// Ignore
+	if progress.Done {
+		p.log("Downloaded: %s %v/%v bytes", p.getItemLabel(image), progress.Written, progress.Total)
+	}
 }
 
 func (p *verboseReporter) ImageEnd(image *pixdl.ImageMetadata, err error) {
