@@ -3,6 +3,7 @@
 pixdl is a tool for downloading images from online galleries.  Currently, it supports:
 
 * imgur.com
+* gofile.io
 * XenForo powered forums
 * Any web page with lots of images on it
 

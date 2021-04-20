@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"github.com/jwalton/pixdl/pkg/providers/gofile"
 	"github.com/jwalton/pixdl/pkg/providers/imgur"
 	"github.com/jwalton/pixdl/pkg/providers/singleimage"
 	"github.com/jwalton/pixdl/pkg/providers/types"
@@ -11,6 +12,7 @@ import (
 // URLProviderRegistry is a list of all URLProviders.
 var URLProviderRegistry = []types.URLProvider{
 	imgur.Provider(),
+	gofile.Provider(),
 	singleimage.Provider(),
 }
 
