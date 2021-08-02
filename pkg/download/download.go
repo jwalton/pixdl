@@ -11,7 +11,7 @@ import (
 )
 
 const partialSuffix = ".part"
-const defaultMaxRetries = 5
+const defaultMaxRetries = 20
 const defaultRetryDelay = 5 * time.Second
 
 // Client is a client to use for downloading files.  Note that you must
@@ -192,7 +192,7 @@ func (client *Client) doDownload(
 	}
 
 	if err != nil {
-		return 0, &httpError{message: err.Error()}
+		return 0, &httpError{canRetry: true, message: err.Error()}
 	}
 
 	defer resp.Body.Close()
