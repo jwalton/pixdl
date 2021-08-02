@@ -15,7 +15,11 @@ const defaultMaxConcurrency = 4
 // DownloadOptions is an object that can be passed to an ImageDownloader to
 // specify options when downloading an album.
 type DownloadOptions struct {
+	// MaxImages is the maximum number of images to download.  0 for all.
+	MaxImages int
+	// MaxPages is the maximum number of pages to download.  0 for all.
 	MaxPages int
+	// ToFolder is the destination folder to download images to.
 	ToFolder string
 }
 

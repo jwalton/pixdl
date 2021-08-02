@@ -68,6 +68,7 @@ func getAlbum(env *env.Env, url string, callback ImageCallback) {
 func downloadAlbum(downloader ImageDownloader, url string, options DownloadOptions, reporter ProgressReporter) {
 	started := false
 	startPage := -1
+	imagesDownloaded := 0
 
 	reporter.AlbumFetch(url)
 	getAlbum(downloader.getEnv(), url, func(album *AlbumMetadata, image *ImageMetadata, err error) bool {
@@ -90,12 +91,17 @@ func downloadAlbum(downloader ImageDownloader, url string, options DownloadOptio
 			startPage = image.Page
 		}
 
+		if options.MaxImages > 0 && imagesDownloaded >= options.MaxImages {
+			return false
+		}
+
 		if options.MaxPages > 0 && (image.Page-startPage) >= options.MaxPages {
 			// Stop fetching images
 			return false
 		}
 
 		downloader.DownloadImage(image, options.ToFolder, reporter)
+		imagesDownloaded++
 
 		return true
 	})
