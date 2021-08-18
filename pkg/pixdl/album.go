@@ -100,7 +100,7 @@ func downloadAlbum(downloader ImageDownloader, url string, options DownloadOptio
 			return false
 		}
 
-		downloader.DownloadImage(image, options.ToFolder, reporter)
+		downloader.DownloadImage(image, options.ToFolder, options.FilenameTemplate, reporter)
 		imagesDownloaded++
 
 		return true

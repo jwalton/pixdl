@@ -22,6 +22,8 @@ type AlbumMetadata struct {
 type ImageMetadata struct {
 	// Album is the album this image came from
 	Album *AlbumMetadata
+	// SubAlbum is the sub-album this image came from (e.g. the post number from a forum).
+	SubAlbum string
 	// URL is the URL to download this image from.
 	URL string
 	// Filename for this image.  If left blank, we'll generate a filename

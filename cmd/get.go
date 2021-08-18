@@ -38,6 +38,11 @@ var getCmd = &cobra.Command{
 			log.PixdlFatal(err)
 		}
 
+		filenameTemplate, err := cmd.Flags().GetString("template")
+		if err != nil {
+			log.PixdlFatal(err)
+		}
+
 		maxImages, err := cmd.Flags().GetInt("max")
 		if err != nil {
 			log.PixdlFatal(err)
@@ -61,9 +66,10 @@ var getCmd = &cobra.Command{
 		maxConcurrency := uint(4)
 
 		options := pixdl.DownloadOptions{
-			ToFolder:  toFolder,
-			MaxPages:  maxPages,
-			MaxImages: maxImages,
+			ToFolder:         toFolder,
+			FilenameTemplate: filenameTemplate,
+			MaxPages:         maxPages,
+			MaxImages:        maxImages,
 		}
 
 		downloader := pixdl.NewConcurrnetDownloader(pixdl.SetMaxConcurrency(maxConcurrency))
@@ -78,6 +84,8 @@ var getCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.Flags().StringP("out", "o", "", "Output directory to put files in")
+	getCmd.Flags().StringP("template", "t", "", `Template to use to generate filenames.
+e.g. "{{.Album.Name}}/{{.Image.SubAlbum}}/{{.Filename}}"`)
 	getCmd.Flags().IntP("max", "n", 0, "Maximum number of images to download from album (0 for all)")
 	getCmd.Flags().Int("max-pages", 0, "Maximum number of pages to download from album (0 for all)")
 }

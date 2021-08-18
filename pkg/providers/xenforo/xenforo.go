@@ -114,6 +114,51 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 		walkDocument(node, false)
 	}
 
+	parsePost := func(
+		parsedURL *url.URL,
+		node *html.Node,
+		album *meta.AlbumMetadata,
+		page int,
+	) {
+		subAlbum := ""
+		htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
+			// Grab the post number from the upper right corner.
+			if node.Type == html.ElementNode && node.Data == "a" && strings.HasPrefix(htmlutils.GetAttr(node.Attr, "href"), "/threads") {
+				post := htmlutils.GetNodeTextContent(node)
+				post = strings.TrimSpace(post)
+				post = strings.TrimPrefix(post, "#")
+				subAlbum = post
+				return false
+			}
+
+			// 'link--external' is a link to an image on an external site.
+			// We don't handle these yet.
+			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "link--external") {
+				return false
+			}
+
+			if node.Type == html.ElementNode && node.Data == "li" && htmlutils.HasClass(node.Attr, "attachment") {
+				image := parseAttachment(parsedURL, node, album, subAlbum, page, index)
+				sendImage(image)
+				return false
+			}
+			if node.Type == html.ElementNode && node.Data == "img" && htmlutils.HasClass(node.Attr, "bbImage") {
+				image := parseInlineImage(parsedURL, node, album, subAlbum, page, index)
+				sendImage(image)
+				return false
+			}
+			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "js-lbImage") {
+				// js-lbImage can show up in an attachment, but also in a `bbWrapper` div, where there's just
+				// a whole bunch of js-lbImage with no other metadata.
+				image := parseLBImage(parsedURL, node, album, subAlbum, page, index)
+				sendImage(image)
+				return false
+			}
+
+			return true
+		})
+	}
+
 	// Find all the images in a given page.
 	walkDocument = func(node *html.Node, getAlbum bool) {
 		htmlutils.WalkNodesPreOrder(node, func(node *html.Node) bool {
@@ -126,14 +171,8 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 				}
 				return false
 			}
-			if node.Type == html.ElementNode && node.Data == "li" && htmlutils.HasClass(node.Attr, "attachment") {
-				image := parseAttachment(parsedURL, node, album, page, index)
-				sendImage(image)
-				return false
-			}
-			if node.Type == html.ElementNode && node.Data == "img" && htmlutils.HasClass(node.Attr, "bbImage") {
-				image := parseInlineImage(parsedURL, node, album, page, index)
-				sendImage(image)
+			if node.Type == html.ElementNode && node.Data == "article" {
+				parsePost(parsedURL, node, album, page)
 				return false
 			}
 			if node.Type == html.ElementNode && node.Data == "div" && htmlutils.HasClass(node.Attr, "block-outer--after") {
@@ -141,13 +180,6 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *htm
 				if nextLink != "" {
 					handleNextPage(nextLink)
 				}
-				return false
-			}
-			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "js-lbImage") {
-				// js-lbImage can show up in an attachment, but also in a `bbWrapper` div, where there's just
-				// a whole bunch of js-lbImage with no other metadata.
-				image := parseLBImage(parsedURL, node, album, page, index)
-				sendImage(image)
 				return false
 			}
 			return true
@@ -207,6 +239,7 @@ func parseAttachment(
 	parsedURL *url.URL,
 	node *html.Node,
 	album *meta.AlbumMetadata,
+	subAlbum string,
 	page int,
 	index int,
 ) *meta.ImageMetadata {
@@ -227,6 +260,7 @@ func parseAttachment(
 
 	if imageURLPath != "" {
 		image := meta.NewImageMetadata(album, index)
+		image.SubAlbum = subAlbum
 		image.Filename = imageName
 		image.Page = page
 		image.URL = htmlutils.ResolveURL(parsedURL, imageURLPath)
@@ -240,6 +274,7 @@ func parseLBImage(
 	parsedURL *url.URL,
 	node *html.Node,
 	album *meta.AlbumMetadata,
+	subAlbum string,
 	page int,
 	index int,
 ) *meta.ImageMetadata {
@@ -259,6 +294,7 @@ func parseLBImage(
 
 	if imageURLPath != "" {
 		image := meta.NewImageMetadata(album, index)
+		image.SubAlbum = subAlbum
 		image.Filename = imageName
 		image.Page = page
 		image.URL = htmlutils.ResolveURL(parsedURL, imageURLPath)
@@ -272,6 +308,7 @@ func parseInlineImage(
 	parsedURL *url.URL,
 	node *html.Node,
 	album *meta.AlbumMetadata,
+	subAlbum string,
 	page int,
 	index int,
 ) *meta.ImageMetadata {
@@ -280,6 +317,7 @@ func parseInlineImage(
 
 	if src != "" && src != "#" {
 		image := meta.NewImageMetadata(album, index)
+		image.SubAlbum = subAlbum
 		image.Filename = alt
 		image.Page = page
 		image.URL = htmlutils.ResolveURL(parsedURL, src)

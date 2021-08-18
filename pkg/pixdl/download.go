@@ -1,12 +1,14 @@
 package pixdl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"text/template"
 	"time"
 
 	"github.com/jwalton/pixdl/pkg/download"
@@ -66,6 +68,7 @@ func downloadImage(
 	env *env.Env,
 	image *ImageMetadata,
 	toFolder string,
+	filenameTemplate string,
 	minSizeBytes int64,
 	reporter ProgressReporter,
 ) {
@@ -94,14 +97,23 @@ func downloadImage(
 	}
 
 	// Figure out where to store this image
-	basename, err := getDownloadFilename(image, remoteInfo)
+	downloadFilename, err := getDownloadFilename(image, remoteInfo)
 	if err != nil {
 		if reporter != nil {
 			reporter.ImageSkip(image, err)
 		}
 		return
 	}
-	destFilename := filepath.Join(toFolder, basename)
+
+	templateFilename, err := getTemplateFilename(filenameTemplate, downloadFilename, albumMetadata, image)
+	if err != nil {
+		if reporter != nil {
+			reporter.ImageSkip(image, err)
+		}
+		return
+	}
+
+	destFilename := filepath.Join(toFolder, templateFilename)
 
 	// Make sure the destination directory exists.
 	destDir := filepath.Dir(destFilename)
@@ -148,4 +160,40 @@ func downloadImage(
 	if image.Timestamp != nil {
 		_ = os.Chtimes(destFilename, time.Now(), *image.Timestamp)
 	}
+}
+
+func validateTemplate(filenameTemplate string) error {
+	if filenameTemplate == "" {
+		return nil
+	}
+	_, err := template.New("filename").Parse(filenameTemplate)
+	return err
+}
+
+func getTemplateFilename(
+	filenameTemplate string,
+	downloadFilename string,
+	albumMetadata *AlbumMetadata,
+	imageMetadata *ImageMetadata,
+) (string, error) {
+	if filenameTemplate == "" {
+		return downloadFilename, nil
+	}
+
+	template, err := template.New("filename").Parse(filenameTemplate)
+	if err != nil {
+		return downloadFilename, err
+	}
+
+	var b bytes.Buffer
+	err = template.Execute(&b, map[string]interface{}{
+		"Filename": downloadFilename,
+		"Album":    albumMetadata,
+		"Image":    imageMetadata,
+	})
+	if err != nil {
+		return downloadFilename, err
+	}
+
+	return b.String(), nil
 }

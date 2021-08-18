@@ -21,6 +21,8 @@ type DownloadOptions struct {
 	MaxPages int
 	// ToFolder is the destination folder to download images to.
 	ToFolder string
+	// FilenameTemplate is a golang template for generating the filename to write to.
+	FilenameTemplate string
 }
 
 // ImageDownloader is an object that can download images.
@@ -36,6 +38,7 @@ type ImageDownloader interface {
 	DownloadImage(
 		image *ImageMetadata,
 		toFolder string,
+		filenameTemplate string,
 		reporter ProgressReporter,
 	)
 
@@ -53,9 +56,10 @@ type ImageDownloader interface {
 }
 
 type downloadRequest struct {
-	image    *ImageMetadata
-	toFolder string
-	reporter ProgressReporter
+	image            *ImageMetadata
+	toFolder         string
+	filenameTemplate string
+	reporter         ProgressReporter
 }
 
 type concurrentDownloader struct {
@@ -130,6 +134,7 @@ func (downloader *concurrentDownloader) startImageWorker(ch <-chan *downloadRequ
 				downloader.env,
 				req.image,
 				req.toFolder,
+				req.filenameTemplate,
 				downloader.minSize,
 				req.reporter,
 			)
@@ -146,6 +151,12 @@ func (downloader *concurrentDownloader) DownloadAlbum(
 	reporter ProgressReporter,
 ) {
 	downloader.albumWg.Add(1)
+
+	err := validateTemplate(options.FilenameTemplate)
+	if err != nil {
+		reporter.ImageEnd(nil, err)
+	}
+
 	go func() {
 		downloadAlbum(downloader, url, options, reporter)
 		downloader.albumWg.Done()
@@ -155,13 +166,14 @@ func (downloader *concurrentDownloader) DownloadAlbum(
 func (downloader *concurrentDownloader) DownloadImage(
 	image *ImageMetadata,
 	toFolder string,
+	filenameTemplate string,
 	reporter ProgressReporter,
 ) {
 	if downloader.IsClosed() {
 		reporter.ImageSkip(image, fmt.Errorf("downloader closed"))
 	} else {
 		downloader.imageWg.Add(1)
-		downloader.ch <- &downloadRequest{image, toFolder, reporter}
+		downloader.ch <- &downloadRequest{image, toFolder, filenameTemplate, reporter}
 	}
 }
 
