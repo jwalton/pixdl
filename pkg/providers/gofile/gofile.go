@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"regexp"
 	"sort"
 
@@ -39,9 +40,22 @@ func (gofileProvider) FetchAlbum(env *env.Env, url string, callback types.ImageC
 
 	albumID := match[2]
 
-	resp, err := env.Get("https://api.gofile.io/getUpload?c=" + albumID)
+	req, err := env.NewGetRequest("https://api.gofile.io/getFolder?folderId=" + albumID)
+	if err != nil {
+		callback(nil, nil, fmt.Errorf("unable to create request for: %s: %v", url, err))
+		return
+	}
+
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Origin", "https://gofile.io")
+	req.Header.Add("Referer", "https://gofile.io/")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: %v", url, err))
+		return
+	}
+	if resp.StatusCode != 200 {
+		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: Got %v", url, resp.StatusCode))
 		return
 	}
 
