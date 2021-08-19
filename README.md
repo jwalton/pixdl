@@ -24,6 +24,12 @@ pixdl get https://imgur.com/gallery/88wOh
 # Download files into another directory
 pixdl get -o ./album https://imgur.com/gallery/88wOh
 
+# Download files and sort them into subfolders based on which post they were in
+pixdl get -o ./bikes --template "{{.Image.SubAlbum}}/{{.Filename}}" https://www.cyclechat.net/threads/four-of-my-carlton-bikes.273364/
+
 # Download files from the first page of a XenForo forum
 pixdl get -o ./bikes --max-pages 1 https://www.cyclechat.net/threads/four-of-my-carlton-bikes.273364/
+
+# Download only images from post #22
+pixdl get -o ./bikes --subalbum 22 https://www.cyclechat.net/threads/four-of-my-carlton-bikes.273364/
 ```
