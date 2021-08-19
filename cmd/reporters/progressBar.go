@@ -147,7 +147,13 @@ func (p *progressBarReporter) getItemLabel(image *pixdl.ImageMetadata) string {
 	if image.Album.TotalImageCount != -1 {
 		outOf = fmt.Sprintf("%d", image.Album.TotalImageCount)
 	}
-	return fmt.Sprintf("%s (%d/%s)", path.Base(image.Filename), image.Index+1, outOf)
+
+	file := path.Base(image.Filename)
+	if image.SubAlbum != "" {
+		file += " [" + image.SubAlbum + "]"
+	}
+
+	return fmt.Sprintf("%s (%d/%s)", file, image.Index+1, outOf)
 }
 
 func (p *progressBarReporter) AlbumFetch(url string) {
