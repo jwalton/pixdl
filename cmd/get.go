@@ -29,29 +29,22 @@ var getCmd = &cobra.Command{
 		url := args[0]
 
 		verbose, err := cmd.Flags().GetBool("verbose")
-		if err != nil {
-			log.PixdlFatal(err)
-		}
+		log.PixdlDieOnError(err)
 
 		toFolder, err := cmd.Flags().GetString("out")
-		if err != nil {
-			log.PixdlFatal(err)
-		}
+		log.PixdlDieOnError(err)
 
 		filenameTemplate, err := cmd.Flags().GetString("template")
-		if err != nil {
-			log.PixdlFatal(err)
-		}
+		log.PixdlDieOnError(err)
 
 		maxImages, err := cmd.Flags().GetInt("max")
-		if err != nil {
-			log.PixdlFatal(err)
-		}
+		log.PixdlDieOnError(err)
 
 		maxPages, err := cmd.Flags().GetInt("max-pages")
-		if err != nil {
-			log.PixdlFatal(err)
-		}
+		log.PixdlDieOnError(err)
+
+		filterSubAlbum, err := cmd.Flags().GetString("subalbum")
+		log.PixdlDieOnError(err)
 
 		reporter := getReporter(verbose)
 
@@ -70,6 +63,7 @@ var getCmd = &cobra.Command{
 			FilenameTemplate: filenameTemplate,
 			MaxPages:         maxPages,
 			MaxImages:        maxImages,
+			FilterSubAlbum:   filterSubAlbum,
 		}
 
 		downloader := pixdl.NewConcurrnetDownloader(pixdl.SetMaxConcurrency(maxConcurrency))
@@ -88,4 +82,5 @@ func init() {
 e.g. "{{.Album.Name}}/{{.Image.SubAlbum}}/{{.Filename}}"`)
 	getCmd.Flags().IntP("max", "n", 0, "Maximum number of images to download from album (0 for all)")
 	getCmd.Flags().Int("max-pages", 0, "Maximum number of pages to download from album (0 for all)")
+	getCmd.Flags().String("subalbum", "", "Only download images from the specified sub-album or post")
 }

@@ -100,8 +100,12 @@ func downloadAlbum(downloader ImageDownloader, url string, options DownloadOptio
 			return false
 		}
 
-		downloader.DownloadImage(image, options.ToFolder, options.FilenameTemplate, reporter)
-		imagesDownloaded++
+		if options.FilterSubAlbum != "" && image.SubAlbum != options.FilterSubAlbum {
+			reporter.ImageSkip(image, nil)
+		} else {
+			downloader.DownloadImage(image, options.ToFolder, options.FilenameTemplate, reporter)
+			imagesDownloaded++
+		}
 
 		return true
 	})

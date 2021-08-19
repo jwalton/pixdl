@@ -52,9 +52,7 @@ func initConfig() {
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
-		if err != nil {
-			log.PixdlFatal(err)
-		}
+		log.PixdlDieOnError(err)
 
 		// Search config in home directory with name ".pixdl" (without extension).
 		viper.AddConfigPath(home)

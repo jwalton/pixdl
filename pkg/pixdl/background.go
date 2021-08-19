@@ -23,6 +23,9 @@ type DownloadOptions struct {
 	ToFolder string
 	// FilenameTemplate is a golang template for generating the filename to write to.
 	FilenameTemplate string
+	// FilterSubAlbum is the name of the subalbum to filter.  If this is non-empty,
+	// then only images from the specified SubAlbum will be downloaded.
+	FilterSubAlbum string
 }
 
 // ImageDownloader is an object that can download images.
