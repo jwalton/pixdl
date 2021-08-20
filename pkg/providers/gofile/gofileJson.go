@@ -26,5 +26,5 @@ type gofileFile struct {
 	// Mimetype is the MIME type for this file.
 	Mimetype string `json:"mimetype"`
 	// Link is the URL to download this file from.
-	Link string `json:"directLink"`
+	Link string `json:"link"`
 }

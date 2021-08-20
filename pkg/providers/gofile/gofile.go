@@ -31,7 +31,27 @@ func (gofileProvider) CanDownload(url string) bool {
 	return gofileRegex.MatchString(url)
 }
 
-func (gofileProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
+func (gofileProvider) gofileApiRequest(env *env.Env, apiUrl string) (*http.Response, error) {
+	req, err := env.NewGetRequest(apiUrl)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create request for: %s: %v", apiUrl, err)
+	}
+
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Origin", "https://gofile.io")
+	req.Header.Add("Referer", "https://gofile.io/")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		resp.Body.Close()
+		return nil, fmt.Errorf("%s returned %v", apiUrl, resp.StatusCode)
+	}
+	return resp, nil
+}
+
+func (provider gofileProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
 	match := gofileRegex.FindStringSubmatch(url)
 	if match == nil {
 		callback(nil, nil, fmt.Errorf("invalid gofile album: %s", url))
@@ -40,25 +60,13 @@ func (gofileProvider) FetchAlbum(env *env.Env, url string, callback types.ImageC
 
 	albumID := match[2]
 
-	req, err := env.NewGetRequest("https://api.gofile.io/getFolder?folderId=" + albumID)
+	// apiUrl := "https://api.gofile.io/getFolder?folderId=" + albumID
+	apiUrl := "https://api.gofile.io/getContent?contentId=" + albumID
+	resp, err := provider.gofileApiRequest(env, apiUrl)
 	if err != nil {
 		callback(nil, nil, fmt.Errorf("unable to create request for: %s: %v", url, err))
 		return
 	}
-
-	req.Header.Add("Accept", "*/*")
-	req.Header.Add("Origin", "https://gofile.io")
-	req.Header.Add("Referer", "https://gofile.io/")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: %v", url, err))
-		return
-	}
-	if resp.StatusCode != 200 {
-		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: Got %v", url, resp.StatusCode))
-		return
-	}
-
 	defer resp.Body.Close()
 
 	parseAlbum(url, albumID, resp.Body, callback)

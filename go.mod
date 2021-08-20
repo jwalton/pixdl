@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/cavaliercoder/grab v1.0.1-0.20201108051000-98a5bfe305ec
 	github.com/jwalton/gchalk v1.0.1
 	github.com/jwalton/go-supportscolor v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
