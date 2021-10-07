@@ -31,7 +31,7 @@ func (webProvider) Name() string {
 	return "web"
 }
 
-func (webProvider) FetchAlbumFromHTML(env *env.Env, url string, node *html.Node, callback types.ImageCallback) bool {
+func (webProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string, url string, node *html.Node, callback types.ImageCallback) bool {
 	album := &meta.AlbumMetadata{
 		Provider:        "web",
 		URL:             url,

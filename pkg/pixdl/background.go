@@ -26,6 +26,8 @@ type DownloadOptions struct {
 	// FilterSubAlbum is the name of the subalbum to filter.  If this is non-empty,
 	// then only images from the specified SubAlbum will be downloaded.
 	FilterSubAlbum string
+	// Params is parameters to pass down to the providers.
+	Params map[string]string
 }
 
 // ImageDownloader is an object that can download images.

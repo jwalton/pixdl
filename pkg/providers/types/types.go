@@ -15,7 +15,7 @@ type URLProvider interface {
 	// CanDownload returns true if this Provider can fetch the specified URL.
 	CanDownload(url string) bool
 	// FetchAlbum will fetch all images in an album, and pass them to the ImageCallback.
-	FetchAlbum(env *env.Env, url string, callback ImageCallback)
+	FetchAlbum(env *env.Env, params map[string]string, url string, callback ImageCallback)
 }
 
 // HTMLProvider represents a back-end which can figure out if a given HTML document
@@ -26,7 +26,7 @@ type HTMLProvider interface {
 	// FetchAlbum will fetch all images in an album, and pass them to the ImageCallback.
 	// If this provider cannot download images from this album, returns `false`
 	// immediately.  If any images were successfully fetched, returns true.
-	FetchAlbumFromHTML(env *env.Env, url string, node *html.Node, callback ImageCallback) bool
+	FetchAlbumFromHTML(env *env.Env, params map[string]string, url string, node *html.Node, callback ImageCallback) bool
 }
 
 // ImageCallback is a function called by a Provider for each image in an album.
@@ -37,4 +37,8 @@ type HTMLProvider interface {
 //
 // Implemnetations can return false to stop the Provider from providing any
 // further images.
-type ImageCallback func(album *meta.AlbumMetadata, image *meta.ImageMetadata, err error) (wantMore bool)
+type ImageCallback func(
+	album *meta.AlbumMetadata,
+	image *meta.ImageMetadata,
+	err error,
+) (wantMore bool)

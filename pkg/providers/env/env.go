@@ -11,6 +11,8 @@ import (
 // Env is a common "environment" object with utility functions and settings
 // information that is passed to all providers.
 type Env struct {
+	// DownloadClient is the client that wil be used to download files.
+	// This must be provided.
 	DownloadClient *download.Client
 }
 

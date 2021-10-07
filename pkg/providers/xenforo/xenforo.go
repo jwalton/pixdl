@@ -45,7 +45,7 @@ func getPageFromURL(url string) (string, int) {
 	return albumID, page
 }
 
-func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, urlStr string, node *html.Node, callback types.ImageCallback) bool {
+func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string, urlStr string, node *html.Node, callback types.ImageCallback) bool {
 	// Look for `<div id="top" class="p-pageWrapper">`.
 	topNode := htmlutils.FindNodeByID(node, "top", 5)
 	if topNode == nil || !strings.Contains(htmlutils.GetAttr(topNode.Attr, "class"), "p-pageWrapper") {

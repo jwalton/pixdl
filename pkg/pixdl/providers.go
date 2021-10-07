@@ -8,13 +8,14 @@ import (
 
 // getAlbumByURL tries to download the album using a URLProvider.  If a suitable
 // provider is found, this will return true.
-func getAlbumByURL(env *env.Env, url string, callback ImageCallback) bool {
+func getAlbumByURL(env *env.Env, params map[string]string, url string, callback ImageCallback) bool {
 	defaultAlbum := &AlbumMetadata{URL: url}
 
 	for _, provider := range providers.URLProviderRegistry {
 		if provider.CanDownload(url) {
 			provider.FetchAlbum(
 				env,
+				params,
 				url,
 				func(album *AlbumMetadata, image *ImageMetadata, err error) bool {
 					// If the provider doesn't give us an album, use the default one we created.
@@ -34,7 +35,7 @@ func getAlbumByURL(env *env.Env, url string, callback ImageCallback) bool {
 // getAlbumWithHTML will download the HTML for an album and parse it, then pass
 // it to each HTMLProvider.  If an HTMLProvider claims to be able to download
 // the album, this will return true, false otherwise.
-func getAlbumWithHTML(env *env.Env, url string, callback ImageCallback) (bool, error) {
+func getAlbumWithHTML(env *env.Env, params map[string]string, url string, callback ImageCallback) (bool, error) {
 	resp, err := env.Get(url)
 	if err != nil {
 		return false, err
@@ -48,7 +49,7 @@ func getAlbumWithHTML(env *env.Env, url string, callback ImageCallback) (bool, e
 	}
 
 	for _, provider := range providers.HTMLProviderRegistry {
-		if provider.FetchAlbumFromHTML(env, url, node, callback) {
+		if provider.FetchAlbumFromHTML(env, params, url, node, callback) {
 			return true, nil
 		}
 	}

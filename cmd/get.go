@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/jwalton/pixdl/internal/log"
@@ -17,6 +18,9 @@ var getCmd = &cobra.Command{
 	Example: heredoc.Doc(`
 		# Download images from an imgur gallery
 		pixdl get https://imgur.com/gallery/88wOh
+
+		# Download files from gofile.io
+		pixdl get --param gofile.token=xxx https://gofile.io/d/abdef
 	`),
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
@@ -46,6 +50,9 @@ var getCmd = &cobra.Command{
 		filterSubAlbum, err := cmd.Flags().GetString("subalbum")
 		log.PixdlDieOnError(err)
 
+		params, err := cmd.Flags().GetStringArray("param")
+		log.PixdlDieOnError(err)
+
 		reporter := getReporter(verbose)
 
 		if toFolder == "" {
@@ -64,6 +71,7 @@ var getCmd = &cobra.Command{
 			MaxPages:         maxPages,
 			MaxImages:        maxImages,
 			FilterSubAlbum:   filterSubAlbum,
+			Params:           parseParams(params),
 		}
 
 		downloader := pixdl.NewConcurrnetDownloader(pixdl.SetMaxConcurrency(maxConcurrency))
@@ -83,4 +91,24 @@ e.g. "{{.Album.Name}}/{{.Image.SubAlbum}}/{{.Filename}}"`)
 	getCmd.Flags().IntP("max", "n", 0, "Maximum number of images to download from album (0 for all)")
 	getCmd.Flags().Int("max-pages", 0, "Maximum number of pages to download from album (0 for all)")
 	getCmd.Flags().String("subalbum", "", "Only download images from the specified sub-album or post")
+	getCmd.Flags().StringArrayP("param", "p", []string{}, "Specify a parameter to pass to providers")
+}
+
+var paramRegex = regexp.MustCompile(`^([a-zA-Z\.-_]*)=(.*)$`)
+
+func parseParams(params []string) map[string]string {
+	result := map[string]string{}
+
+	for _, param := range params {
+		match := paramRegex.FindStringSubmatch(param)
+		if match == nil {
+			result[param] = ""
+		} else {
+			key := match[1]
+			value := match[2]
+			result[key] = value
+		}
+	}
+
+	return result
 }

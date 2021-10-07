@@ -31,10 +31,10 @@ func (gofileProvider) CanDownload(url string) bool {
 	return gofileRegex.MatchString(url)
 }
 
-func (gofileProvider) gofileApiRequest(env *env.Env, apiUrl string) (*http.Response, error) {
-	req, err := env.NewGetRequest(apiUrl)
+func (gofileProvider) gofileAPIRequest(env *env.Env, apiURL string) (*http.Response, error) {
+	req, err := env.NewGetRequest(apiURL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create request for: %s: %v", apiUrl, err)
+		return nil, fmt.Errorf("unable to create request for: %s: %v", apiURL, err)
 	}
 
 	req.Header.Add("Accept", "*/*")
@@ -46,12 +46,12 @@ func (gofileProvider) gofileApiRequest(env *env.Env, apiUrl string) (*http.Respo
 	}
 	if resp.StatusCode != 200 {
 		resp.Body.Close()
-		return nil, fmt.Errorf("%s returned %v", apiUrl, resp.StatusCode)
+		return nil, fmt.Errorf("%s returned %v", apiURL, resp.StatusCode)
 	}
 	return resp, nil
 }
 
-func (provider gofileProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
+func (provider gofileProvider) FetchAlbum(env *env.Env, params map[string]string, url string, callback types.ImageCallback) {
 	match := gofileRegex.FindStringSubmatch(url)
 	if match == nil {
 		callback(nil, nil, fmt.Errorf("invalid gofile album: %s", url))
@@ -60,9 +60,9 @@ func (provider gofileProvider) FetchAlbum(env *env.Env, url string, callback typ
 
 	albumID := match[2]
 
-	// apiUrl := "https://api.gofile.io/getFolder?folderId=" + albumID
-	apiUrl := "https://api.gofile.io/getContent?contentId=" + albumID
-	resp, err := provider.gofileApiRequest(env, apiUrl)
+	// apiURL := "https://api.gofile.io/getFolder?folderId=" + albumID
+	apiURL := "https://api.gofile.io/getContent?contentId=" + albumID + "&token=" + params["gofile.token"]
+	resp, err := provider.gofileAPIRequest(env, apiURL)
 	if err != nil {
 		callback(nil, nil, fmt.Errorf("unable to create request for: %s: %v", url, err))
 		return

@@ -68,7 +68,7 @@ func (p *verboseReporter) ImageSkip(image *pixdl.ImageMetadata, err error) {
 }
 
 func (p *verboseReporter) ImageStart(image *pixdl.ImageMetadata) {
-	p.log("Downloading: %s", p.getItemLabel(image))
+	p.log("Downloading: %s from %s", p.getItemLabel(image), image.URL)
 }
 
 func (p *verboseReporter) ImageProgress(image *pixdl.ImageMetadata, progress *download.Progress) {

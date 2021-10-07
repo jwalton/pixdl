@@ -30,7 +30,7 @@ func (imgurProvider) CanDownload(url string) bool {
 	return imgurRegex.MatchString(url)
 }
 
-func (imgurProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
+func (imgurProvider) FetchAlbum(env *env.Env, params map[string]string, url string, callback types.ImageCallback) {
 	match := imgurRegex.FindStringSubmatch(url)
 	if match == nil {
 		callback(nil, nil, fmt.Errorf("invalid imgur album: %s", url))

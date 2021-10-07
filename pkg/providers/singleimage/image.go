@@ -35,7 +35,7 @@ func (imageProvider) CanDownload(url string) bool {
 	return IsImageByExtension(url)
 }
 
-func (imageProvider) FetchAlbum(env *env.Env, url string, callback types.ImageCallback) {
+func (imageProvider) FetchAlbum(env *env.Env, params map[string]string, url string, callback types.ImageCallback) {
 	fileInfo, err := env.GetFileInfo(url)
 	if err != nil {
 		callback(nil, nil, err)

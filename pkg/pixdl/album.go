@@ -23,10 +23,15 @@ type ImageCallback = types.ImageCallback
 // If an error occurs fetching images, the callback will be called with an error.
 // When all images have been fetched, callback will be called with `nil` for
 // the image.  The callback may return false to stop fetching more images.
-func getAlbum(env *env.Env, url string, callback ImageCallback) {
+func getAlbum(
+	env *env.Env,
+	params map[string]string,
+	url string,
+	callback ImageCallback,
+) {
 	defaultAlbum := &AlbumMetadata{URL: url}
 
-	handled := getAlbumByURL(env, url, callback)
+	handled := getAlbumByURL(env, params, url, callback)
 
 	if !handled {
 		var err error
@@ -45,7 +50,7 @@ func getAlbum(env *env.Env, url string, callback ImageCallback) {
 		}
 
 		if fileInfo.MimeType == "text/html" {
-			handled, err = getAlbumWithHTML(env, url, callback)
+			handled, err = getAlbumWithHTML(env, params, url, callback)
 
 			if err != nil {
 				callback(defaultAlbum, nil, err)
@@ -54,7 +59,7 @@ func getAlbum(env *env.Env, url string, callback ImageCallback) {
 		} else if strings.HasPrefix(fileInfo.MimeType, "image/") {
 			// If the URL is an image, use the "singleimage" provider to download it.
 			provider := singleimage.Provider()
-			provider.FetchAlbum(env, url, callback)
+			provider.FetchAlbum(env, params, url, callback)
 		}
 	}
 
@@ -71,7 +76,7 @@ func downloadAlbum(downloader ImageDownloader, url string, options DownloadOptio
 	imagesDownloaded := 0
 
 	reporter.AlbumFetch(url)
-	getAlbum(downloader.getEnv(), url, func(album *AlbumMetadata, image *ImageMetadata, err error) bool {
+	getAlbum(downloader.getEnv(), options.Params, url, func(album *AlbumMetadata, image *ImageMetadata, err error) bool {
 		if !started {
 			reporter.AlbumStart(album)
 			started = true
