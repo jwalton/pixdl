@@ -115,6 +115,8 @@ func (client *Client) DoWithFileInfo(
 					// See these fairly often from some servers - if we see these
 					// and `remoteInfo.CanResume`, then don't count against retriesLeft,
 					// keep going.
+				} else if strings.Contains(httpErr.Error(), "connection reset by peer") && written > 0 && remoteInfo.CanResume {
+					// Retry immediately.
 				} else {
 					pw.Warn(fmt.Sprintf("Error: %v - will retry", httpErr))
 					triesLeft--
