@@ -82,7 +82,7 @@ func (p *progressBarReporter) render(message string) {
 	})
 
 	// Don't print more lines than will fit on the screen.
-	if len(items) > (height - 1) {
+	if height > 0 && len(items) > (height-1) {
 		items = items[0 : height-1]
 	}
 
