@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jwalton/pixdl/pkg/providers/env"
-	"github.com/jwalton/pixdl/pkg/providers/singleimage"
-	"github.com/jwalton/pixdl/pkg/providers/types"
+	"github.com/jwalton/pixdl/pkg/providers"
 )
 
 // ImageCallback is a function called by a Provider for each image in an album.
@@ -17,14 +15,14 @@ import (
 //
 // Implemnetations can return false to stop the Provider from providing any
 // further images.
-type ImageCallback = types.ImageCallback
+type ImageCallback = providers.ImageCallback
 
 // getAlbum will fetch all images in an album, and pass each one to the callback.
 // If an error occurs fetching images, the callback will be called with an error.
 // When all images have been fetched, callback will be called with `nil` for
 // the image.  The callback may return false to stop fetching more images.
 func getAlbum(
-	env *env.Env,
+	env *providers.Env,
 	params map[string]string,
 	url string,
 	callback ImageCallback,
@@ -58,7 +56,7 @@ func getAlbum(
 			}
 		} else if strings.HasPrefix(fileInfo.MimeType, "image/") {
 			// If the URL is an image, use the "singleimage" provider to download it.
-			provider := singleimage.Provider()
+			provider := providers.SingleImageProvider()
 			provider.FetchAlbum(env, params, url, callback)
 		}
 	}

@@ -1,4 +1,4 @@
-package gofile
+package providers
 
 import (
 	"encoding/json"
@@ -9,13 +9,35 @@ import (
 	"sort"
 
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/env"
-	"github.com/jwalton/pixdl/pkg/providers/types"
 )
 
-// Provider returns a new Gofile provider.
-func Provider() types.URLProvider {
-	return gofileProvider{}
+type gofileUpload struct {
+	// Status is the status of the request - should be "ok".
+	Status string `json:"status"`
+	// Data is the data for the request.
+	Data struct {
+		// Code is the unique ID for this album.
+		Code string `json:"code"`
+		// CreateTime is the unix timestamp this file was created at (e.g. 1618941563)
+		CreateTime int64 `json:"createTime"`
+		// TotalDownload is the number of times this album has been downloaded.
+		TotalDownload int64 `json:"totalDownloadCount"`
+		// TotalSize is the total size of all items in this album, in bytes.
+		TotalSize int64 `json:"totalSize"`
+		// Files is a hash of all files in this album, indexed by md5 hash.
+		Files map[string]gofileFile `json:"contents"`
+	} `json:"data"`
+}
+
+type gofileFile struct {
+	// Name is the filename for this file.
+	Name string `json:"name"`
+	// Size is the size of this file, in bytes.
+	Size int64 `json:"size"`
+	// Mimetype is the MIME type for this file.
+	Mimetype string `json:"mimetype"`
+	// Link is the URL to download this file from.
+	Link string `json:"link"`
 }
 
 type gofileProvider struct{}
@@ -31,7 +53,7 @@ func (gofileProvider) CanDownload(url string) bool {
 	return gofileRegex.MatchString(url)
 }
 
-func (gofileProvider) gofileAPIRequest(env *env.Env, apiURL string) (*http.Response, error) {
+func (gofileProvider) gofileAPIRequest(env *Env, apiURL string) (*http.Response, error) {
 	req, err := env.NewGetRequest(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create request for: %s: %v", apiURL, err)
@@ -51,7 +73,7 @@ func (gofileProvider) gofileAPIRequest(env *env.Env, apiURL string) (*http.Respo
 	return resp, nil
 }
 
-func (provider gofileProvider) FetchAlbum(env *env.Env, params map[string]string, url string, callback types.ImageCallback) {
+func (provider gofileProvider) FetchAlbum(env *Env, params map[string]string, url string, callback ImageCallback) {
 	match := gofileRegex.FindStringSubmatch(url)
 	if match == nil {
 		callback(nil, nil, fmt.Errorf("invalid gofile album: %s", url))
@@ -69,10 +91,10 @@ func (provider gofileProvider) FetchAlbum(env *env.Env, params map[string]string
 	}
 	defer resp.Body.Close()
 
-	parseAlbum(url, albumID, resp.Body, callback)
+	provider.parseAlbum(url, albumID, resp.Body, callback)
 }
 
-func parseAlbum(url string, albumID string, reader io.Reader, callback types.ImageCallback) {
+func (provider gofileProvider) parseAlbum(url string, albumID string, reader io.Reader, callback ImageCallback) {
 	albumData := gofileUpload{}
 
 	err := json.NewDecoder(reader).Decode(&albumData)
@@ -88,12 +110,12 @@ func parseAlbum(url string, albumID string, reader io.Reader, callback types.Ima
 		TotalImageCount: len(albumData.Data.Files),
 	}
 
-	files := sortFiles(albumData.Data.Files)
+	files := provider.sortFiles(albumData.Data.Files)
 
-	parseImages(album, files, callback)
+	provider.parseImages(album, files, callback)
 }
 
-func sortFiles(fileMap map[string]gofileFile) []gofileFile {
+func (provider gofileProvider) sortFiles(fileMap map[string]gofileFile) []gofileFile {
 	files := make([]gofileFile, 0, len(fileMap))
 	for _, image := range fileMap {
 		files = append(files, image)
@@ -104,7 +126,7 @@ func sortFiles(fileMap map[string]gofileFile) []gofileFile {
 	return files
 }
 
-func parseImages(album *meta.AlbumMetadata, images []gofileFile, callback types.ImageCallback) {
+func (provider gofileProvider) parseImages(album *meta.AlbumMetadata, images []gofileFile, callback ImageCallback) {
 	for index, image := range images {
 		callback(
 			album,

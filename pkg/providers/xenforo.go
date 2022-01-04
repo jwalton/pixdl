@@ -1,4 +1,4 @@
-package xenforo
+package providers
 
 import (
 	"net/url"
@@ -7,16 +7,9 @@ import (
 	"strings"
 
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/env"
 	"github.com/jwalton/pixdl/pkg/providers/internal/htmlutils"
-	"github.com/jwalton/pixdl/pkg/providers/types"
 	"golang.org/x/net/html"
 )
-
-// Provider returns the generic "web" provider.
-func Provider() types.HTMLProvider {
-	return xenforoProvider{}
-}
 
 type xenforoProvider struct{}
 
@@ -45,7 +38,7 @@ func getPageFromURL(url string) (string, int) {
 	return albumID, page
 }
 
-func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string, urlStr string, node *html.Node, callback types.ImageCallback) bool {
+func (xenforoProvider) FetchAlbumFromHTML(env *Env, params map[string]string, urlStr string, node *html.Node, callback ImageCallback) bool {
 	// Look for `<div id="top" class="p-pageWrapper">`.
 	topNode := htmlutils.FindNodeByID(node, "top", 5)
 	if topNode == nil || !strings.Contains(htmlutils.GetAttr(topNode.Attr, "class"), "p-pageWrapper") {
@@ -97,15 +90,7 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string
 		_, page = getPageFromURL(nextLink)
 
 		nextPage := htmlutils.ResolveURL(parsedURL, nextLink)
-		resp, err := env.Get(nextPage)
-		if err != nil {
-			albumErr = err
-			return
-		}
-
-		defer resp.Body.Close()
-
-		node, err := html.Parse(resp.Body)
+		node, err := env.GetHTML(nextPage)
 		if err != nil {
 			albumErr = err
 			return
@@ -134,6 +119,16 @@ func (xenforoProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string
 			// 'link--external' is a link to an image on an external site.
 			// We don't handle these yet.
 			if node.Type == html.ElementNode && node.Data == "a" && htmlutils.HasClass(node.Attr, "link--external") {
+				externalURL := htmlutils.GetAttr(node.Attr, "href")
+				if externalURL != "" {
+					image, err := fetchImage(env, params, album, externalURL)
+					if err == nil && image != nil {
+						image.Index = index
+						image.SubAlbum = subAlbum
+						image.Page = page
+						sendImage(image)
+					}
+				}
 				return false
 			}
 

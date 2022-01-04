@@ -1,4 +1,4 @@
-package imgur
+package providers
 
 import (
 	"strings"
@@ -153,7 +153,8 @@ func TestImgurParseAlbum(t *testing.T) {
 		return true
 	}
 
-	parseAlbum(url, "88wOh", strings.NewReader(sample), callback)
+	provider := imgurProvider{}
+	provider.parseAlbum(url, "88wOh", strings.NewReader(sample), callback)
 	assert.Nil(t, err)
 
 	t1, _ := time.Parse("2006-01-02 15:04:05", "2017-07-31 12:25:20")

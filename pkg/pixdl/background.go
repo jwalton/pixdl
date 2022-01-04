@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/jwalton/pixdl/pkg/providers/env"
+	"github.com/jwalton/pixdl/pkg/providers"
 )
 
 // TODO: Want options for things like login credentials, user agent, etc...
@@ -57,7 +57,7 @@ type ImageDownloader interface {
 	// IsClosed will return true if this downloader has been closed.
 	IsClosed() bool
 
-	getEnv() *env.Env
+	getEnv() *providers.Env
 }
 
 type downloadRequest struct {
@@ -68,7 +68,7 @@ type downloadRequest struct {
 }
 
 type concurrentDownloader struct {
-	env            *env.Env
+	env            *providers.Env
 	ch             chan *downloadRequest
 	albumWg        *sync.WaitGroup
 	imageWg        *sync.WaitGroup
@@ -105,7 +105,7 @@ func SetMaxConcurrency(maxConcurrency uint) Option {
 // the maximum number of concurrent downloads to allow at the same time.
 func NewConcurrnetDownloader(options ...Option) ImageDownloader {
 	downloader := &concurrentDownloader{
-		env:     &env.Env{DownloadClient: client},
+		env:     &providers.Env{DownloadClient: client},
 		ch:      nil,
 		albumWg: &sync.WaitGroup{},
 		imageWg: &sync.WaitGroup{},
@@ -201,6 +201,6 @@ func (downloader *concurrentDownloader) IsClosed() bool {
 	return atomic.LoadInt32(&downloader.closed) == 1
 }
 
-func (downloader *concurrentDownloader) getEnv() *env.Env {
+func (downloader *concurrentDownloader) getEnv() *providers.Env {
 	return downloader.env
 }

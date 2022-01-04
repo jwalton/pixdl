@@ -1,11 +1,10 @@
-// Package env provides a common "environment" object with utility functions
-// and settings information for all providers.
-package env
+package providers
 
 import (
 	"net/http"
 
 	"github.com/jwalton/pixdl/pkg/download"
+	"golang.org/x/net/html"
 )
 
 // Env is a common "environment" object with utility functions and settings
@@ -33,6 +32,18 @@ func (env *Env) Get(url string) (*http.Response, error) {
 	}
 
 	return http.DefaultClient.Do(req)
+}
+
+// GetHTML will fetch the HTML contents of a URL via HTTP GET, and return the parsed HTML.
+func (env *Env) GetHTML(url string) (*html.Node, error) {
+	resp, err := env.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	return html.Parse(resp.Body)
 }
 
 // GetFileInfo returns information about a file on a server.

@@ -13,7 +13,7 @@ import (
 
 	"github.com/jwalton/pixdl/pkg/download"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/env"
+	"github.com/jwalton/pixdl/pkg/providers"
 )
 
 // AlbumMetadata contains data about an album.
@@ -65,7 +65,7 @@ func fileExists(filename string) (bool, error) {
 // downloadImage downloads an image and saves it on disk.
 // `image` is the image to download, `toFolder` is the file to store it in.
 func downloadImage(
-	env *env.Env,
+	env *providers.Env,
 	image *ImageMetadata,
 	toFolder string,
 	filenameTemplate string,

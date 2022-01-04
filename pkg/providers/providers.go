@@ -1,24 +1,41 @@
 package providers
 
 import (
-	"github.com/jwalton/pixdl/pkg/providers/gofile"
-	"github.com/jwalton/pixdl/pkg/providers/imgur"
-	"github.com/jwalton/pixdl/pkg/providers/singleimage"
-	"github.com/jwalton/pixdl/pkg/providers/types"
-	"github.com/jwalton/pixdl/pkg/providers/web"
-	"github.com/jwalton/pixdl/pkg/providers/xenforo"
+	"fmt"
+
+	"github.com/jwalton/pixdl/pkg/pixdl/meta"
 )
 
 // URLProviderRegistry is a list of all URLProviders.
-var URLProviderRegistry = []types.URLProvider{
-	imgur.Provider(),
-	gofile.Provider(),
-	singleimage.Provider(),
+var URLProviderRegistry = []URLProvider{
+	imgurProvider{},
+	gofileProvider{},
+	singleimageProvider{},
 }
 
 // HTMLProviderRegistry is a list of all HTMLProviders.
-var HTMLProviderRegistry = []types.HTMLProvider{
-	xenforo.Provider(),
+var HTMLProviderRegistry = []HTMLProvider{
+	xenforoProvider{},
 	// Web will download just about anything, so it should always be last in this list.
-	web.Provider(),
+	webProvider{},
+}
+
+var imageProviderRegistry = []URLImageProvider{}
+
+func fetchImage(
+	env *Env,
+	params map[string]string,
+	album *meta.AlbumMetadata,
+	url string,
+) (image *meta.ImageMetadata, err error) {
+	for _, provider := range imageProviderRegistry {
+		if provider.CanFetchImage(url) {
+			image, err = provider.FetchImage(env, params, album, url)
+			if err == nil && image != nil {
+				return image, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("Unable to fetch image: %s", url)
 }

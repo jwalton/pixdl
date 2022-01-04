@@ -1,17 +1,12 @@
-package web
+package providers
 
 import (
-	"net/url"
-	"path"
 	"strings"
 	"time"
 
 	"github.com/jwalton/pixdl/pkg/download"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/env"
 	"github.com/jwalton/pixdl/pkg/providers/internal/htmlutils"
-	"github.com/jwalton/pixdl/pkg/providers/singleimage"
-	"github.com/jwalton/pixdl/pkg/providers/types"
 	"golang.org/x/net/html"
 )
 
@@ -20,18 +15,13 @@ const minImageSize = 5000
 
 // TODO: Add options for min size, CSS selector, min dimensions.
 
-// Provider returns the generic "web" provider.
-func Provider() types.HTMLProvider {
-	return webProvider{}
-}
-
 type webProvider struct{}
 
 func (webProvider) Name() string {
 	return "web"
 }
 
-func (webProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string, url string, node *html.Node, callback types.ImageCallback) bool {
+func (webProvider) FetchAlbumFromHTML(env *Env, params map[string]string, url string, node *html.Node, callback ImageCallback) bool {
 	album := &meta.AlbumMetadata{
 		Provider:        "web",
 		URL:             url,
@@ -85,7 +75,7 @@ func (webProvider) FetchAlbumFromHTML(env *env.Env, params map[string]string, ur
 	return index != 0
 }
 
-func convertLinkToImage(env *env.Env, album *meta.AlbumMetadata, url string, title string, nextImageIndex int) *meta.ImageMetadata {
+func convertLinkToImage(env *Env, album *meta.AlbumMetadata, url string, title string, nextImageIndex int) *meta.ImageMetadata {
 	// Check to make sure this really is an image, and get info about the file.
 	isImage, remoteInfo := checkIsImage(env, url)
 	if !isImage {
@@ -179,8 +169,8 @@ func findPossibleImageLinks(
 	})
 }
 
-func checkIsImage(env *env.Env, url string) (bool, *download.RemoteFileInfo) {
-	if singleimage.IsImageByExtension(url) {
+func checkIsImage(env *Env, url string) (bool, *download.RemoteFileInfo) {
+	if IsImageByExtension(url) {
 		return true, nil
 	}
 
@@ -195,12 +185,4 @@ func checkIsImage(env *env.Env, url string) (bool, *download.RemoteFileInfo) {
 	}
 
 	return false, nil
-}
-
-func getFilenameFromURL(urlStr string) (string, error) {
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return "", err
-	}
-	return path.Base(parsedURL.Path), nil
 }

@@ -2,13 +2,12 @@ package pixdl
 
 import (
 	"github.com/jwalton/pixdl/pkg/providers"
-	"github.com/jwalton/pixdl/pkg/providers/env"
 	"golang.org/x/net/html"
 )
 
 // getAlbumByURL tries to download the album using a URLProvider.  If a suitable
 // provider is found, this will return true.
-func getAlbumByURL(env *env.Env, params map[string]string, url string, callback ImageCallback) bool {
+func getAlbumByURL(env *providers.Env, params map[string]string, url string, callback ImageCallback) bool {
 	defaultAlbum := &AlbumMetadata{URL: url}
 
 	for _, provider := range providers.URLProviderRegistry {
@@ -35,7 +34,7 @@ func getAlbumByURL(env *env.Env, params map[string]string, url string, callback 
 // getAlbumWithHTML will download the HTML for an album and parse it, then pass
 // it to each HTMLProvider.  If an HTMLProvider claims to be able to download
 // the album, this will return true, false otherwise.
-func getAlbumWithHTML(env *env.Env, params map[string]string, url string, callback ImageCallback) (bool, error) {
+func getAlbumWithHTML(env *providers.Env, params map[string]string, url string, callback ImageCallback) (bool, error) {
 	resp, err := env.Get(url)
 	if err != nil {
 		return false, err

@@ -1,4 +1,4 @@
-package singleimage
+package providers
 
 import (
 	"net/url"
@@ -7,8 +7,6 @@ import (
 
 	"github.com/jwalton/pixdl/pkg/download"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/env"
-	"github.com/jwalton/pixdl/pkg/providers/types"
 )
 
 // Regex that matches known image/movie file extensions.
@@ -19,23 +17,23 @@ func IsImageByExtension(url string) bool {
 	return knownImageExtensions.MatchString(url)
 }
 
-// Provider returns a new Imgur provider.
-func Provider() types.URLProvider {
-	return imageProvider{}
+// SingleImageProvider returns a new instance of the singleimage provider.
+func SingleImageProvider() URLProvider {
+	return singleimageProvider{}
 }
 
-type imageProvider struct{}
+type singleimageProvider struct{}
 
-func (imageProvider) Name() string {
+func (singleimageProvider) Name() string {
 	return "singleimage"
 }
 
 // CanDownload returns true if this downloader can download an album from the given URL.
-func (imageProvider) CanDownload(url string) bool {
+func (singleimageProvider) CanDownload(url string) bool {
 	return IsImageByExtension(url)
 }
 
-func (imageProvider) FetchAlbum(env *env.Env, params map[string]string, url string, callback types.ImageCallback) {
+func (singleimageProvider) FetchAlbum(env *Env, params map[string]string, url string, callback ImageCallback) {
 	fileInfo, err := env.GetFileInfo(url)
 	if err != nil {
 		callback(nil, nil, err)
@@ -45,7 +43,7 @@ func (imageProvider) FetchAlbum(env *env.Env, params map[string]string, url stri
 	singleImageAlbum(url, fileInfo, callback)
 }
 
-func singleImageAlbum(urlStr string, fileInfo *download.RemoteFileInfo, callback types.ImageCallback) {
+func singleImageAlbum(urlStr string, fileInfo *download.RemoteFileInfo, callback ImageCallback) {
 	filename, err := getFilenameFromURL(urlStr)
 
 	if err != nil {
@@ -79,7 +77,6 @@ func singleImageAlbum(urlStr string, fileInfo *download.RemoteFileInfo, callback
 	}
 }
 
-// TODO: Move this somewhere common?  Multiple providers implement this.
 func getFilenameFromURL(urlStr string) (string, error) {
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {

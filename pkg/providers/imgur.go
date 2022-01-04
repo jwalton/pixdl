@@ -1,4 +1,4 @@
-package imgur
+package providers
 
 import (
 	"encoding/json"
@@ -8,13 +8,38 @@ import (
 	"time"
 
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/env"
-	"github.com/jwalton/pixdl/pkg/providers/types"
 )
 
-// Provider returns a new Imgur provider.
-func Provider() types.URLProvider {
-	return imgurProvider{}
+type imgurGalleryResponse struct {
+	Data struct {
+		Image struct {
+			ID          int64  `json:"id"`
+			Hash        string `json:"hash"`
+			AccountURL  string `json:"account_url"`
+			Title       string `json:"title"`
+			AlbumImages struct {
+				Count  int64        `json:"count"`
+				Images []imgurImage `json:"images"`
+			} `json:"album_images"`
+		} `jason:"image"`
+	} `json:"data"`
+}
+
+type imgurImage struct {
+	// Hash is a unique ID.  Can download the actual image from `https://i.imgur.com/${Hash}.${Ext}`.
+	Hash string `json:"hash"`
+	// Title is the title of the file, but is often empty.
+	Title string `json:"title"`
+	// Size is the size of the image, in bytes.
+	Size int64 `json:"size"`
+	// Description is a description of the file.
+	Description string `json:"description"`
+	// Name is the name of the file, without the extension.
+	Name string `json:"name"`
+	// Ext is the extension of the file.
+	Ext string `json:"ext"`
+	// Datetime is in format "2017-07-31 12:25:20".
+	Datetime string `json:"datetime"`
 }
 
 type imgurProvider struct{}
@@ -30,7 +55,7 @@ func (imgurProvider) CanDownload(url string) bool {
 	return imgurRegex.MatchString(url)
 }
 
-func (imgurProvider) FetchAlbum(env *env.Env, params map[string]string, url string, callback types.ImageCallback) {
+func (provider imgurProvider) FetchAlbum(env *Env, params map[string]string, url string, callback ImageCallback) {
 	match := imgurRegex.FindStringSubmatch(url)
 	if match == nil {
 		callback(nil, nil, fmt.Errorf("invalid imgur album: %s", url))
@@ -47,10 +72,10 @@ func (imgurProvider) FetchAlbum(env *env.Env, params map[string]string, url stri
 
 	defer resp.Body.Close()
 
-	parseAlbum(url, albumID, resp.Body, callback)
+	provider.parseAlbum(url, albumID, resp.Body, callback)
 }
 
-func parseAlbum(url string, albumID string, reader io.Reader, callback types.ImageCallback) {
+func (provider imgurProvider) parseAlbum(url string, albumID string, reader io.Reader, callback ImageCallback) {
 	albumData := imgurGalleryResponse{}
 
 	err := json.NewDecoder(reader).Decode(&albumData)
@@ -68,10 +93,10 @@ func parseAlbum(url string, albumID string, reader io.Reader, callback types.Ima
 		TotalImageCount: int(albumData.Data.Image.AlbumImages.Count),
 	}
 
-	parseImages(album, albumData.Data.Image.AlbumImages.Images, callback)
+	provider.parseImages(album, albumData.Data.Image.AlbumImages.Images, callback)
 }
 
-func parseImages(album *meta.AlbumMetadata, images []imgurImage, callback types.ImageCallback) {
+func (provider imgurProvider) parseImages(album *meta.AlbumMetadata, images []imgurImage, callback ImageCallback) {
 	for index, image := range images {
 		var timestamp *time.Time
 
