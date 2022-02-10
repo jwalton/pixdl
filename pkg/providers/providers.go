@@ -10,17 +10,21 @@ import (
 var URLProviderRegistry = []URLProvider{
 	imgurProvider{},
 	gofileProvider{},
+	cyberdropProvider{},
 	singleimageProvider{},
 }
 
 // HTMLProviderRegistry is a list of all HTMLProviders.
 var HTMLProviderRegistry = []HTMLProvider{
 	xenforoProvider{},
+	putmegaProvider{},
 	// Web will download just about anything, so it should always be last in this list.
 	webProvider{},
 }
 
-var imageProviderRegistry = []URLImageProvider{}
+var imageProviderRegistry = []URLImageProvider{
+	pixhostToProvider{},
+}
 
 func fetchImage(
 	env *Env,
