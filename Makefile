@@ -9,7 +9,6 @@ PKGS     = $(or $(PKG),$(shell env GO111MODULE=on $(GO) list ./...))
 TESTPKGS = $(shell env GO111MODULE=on $(GO) list -f \
 			'{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' \
 			$(PKGS))
-GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 RELEASE  = $(CURDIR)/dist
 
 GO           = go
