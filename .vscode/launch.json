@@ -11,7 +11,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceFolder}",
-            "args": ["get", "-o", "./tmp", "https://www.cyclechat.net/threads/four-of-my-carlton-bikes.273364/"],
+            "args": ["get", "-o", "./tmp", "https://imgur.com/a/hyiYoGV"],
         }
     ]
 }

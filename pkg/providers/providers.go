@@ -41,5 +41,5 @@ func fetchImage(
 		}
 	}
 
-	return nil, fmt.Errorf("Unable to fetch image: %s", url)
+	return nil, fmt.Errorf("unable to fetch image: %s", url)
 }

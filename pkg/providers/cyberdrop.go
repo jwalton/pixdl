@@ -29,7 +29,7 @@ func (cyberdropProvider) CanDownload(url string) bool {
 func (provider cyberdropProvider) FetchAlbum(env *Env, params map[string]string, url string, callback ImageCallback) {
 	match := cyberdropRegex.FindStringSubmatch(url)
 	if match == nil {
-		callback(nil, nil, fmt.Errorf("Invalid cyberdrop.me URL: %s", url))
+		callback(nil, nil, fmt.Errorf("invalid cyberdrop.me URL: %s", url))
 		return
 	}
 
@@ -37,7 +37,7 @@ func (provider cyberdropProvider) FetchAlbum(env *Env, params map[string]string,
 
 	resp, err := env.Get(url)
 	if err != nil {
-		callback(nil, nil, fmt.Errorf("Unable to fetch album: %s: %v", url, err))
+		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: %v", url, err))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (provider cyberdropProvider) parseCyberdropImage(album *meta.AlbumMetadata,
 
 					href, ok := attrs["href"]
 					if !ok {
-						return nil, fmt.Errorf("Image has no href")
+						return nil, fmt.Errorf("image has no href")
 					}
 
 					image.URL = href
@@ -114,7 +114,7 @@ func (provider cyberdropProvider) parseCyberdropImage(album *meta.AlbumMetadata,
 	}
 
 	if image.URL == "" {
-		return nil, fmt.Errorf("Image has no URL")
+		return nil, fmt.Errorf("image has no URL")
 	}
 	return image, nil
 }
