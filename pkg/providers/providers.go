@@ -11,6 +11,7 @@ var URLProviderRegistry = []URLProvider{
 	imgurProvider{},
 	gofileProvider{},
 	cyberdropProvider{},
+	bunkrProvider{},
 	singleimageProvider{},
 }
 
