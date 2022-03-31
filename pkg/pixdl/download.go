@@ -25,11 +25,20 @@ type ImageMetadata = meta.ImageMetadata
 var client = download.NewClient()
 
 // Return the file name to store the downloaded image in.
-func getDownloadFilename(image *ImageMetadata, remoteInfo *download.RemoteFileInfo) (string, error) {
+func getDownloadFilename(
+	image *ImageMetadata,
+	getRemoteInfo func() (*download.RemoteFileInfo, error),
+) (string, error) {
 	filename := image.Filename
 
 	if filename == "" {
-		filename = remoteInfo.Filename
+		remoteInfo, err := getRemoteInfo()
+		if err != nil {
+			return "", err
+		}
+		if remoteInfo != nil {
+			filename = remoteInfo.Filename
+		}
 	}
 
 	if filename == "" {
@@ -82,7 +91,9 @@ func downloadImage(
 
 	req, err := env.NewGetRequest(image.URL)
 	if err != nil {
-		reporter.ImageSkip(image, err)
+		if reporter != nil {
+			reporter.ImageSkip(image, err)
+		}
 		return
 	}
 
@@ -91,13 +102,18 @@ func downloadImage(
 	// that need authentication.
 	// req.Header.Set("User-Agent", "pixdl")
 
-	remoteInfo := image.RemoteInfo
-	if remoteInfo == nil {
-		remoteInfo, _ = client.DoFileInfo(req)
+	// Defer getting remoteInfo until we know we need it.  If we already have the
+	// filename, and the file exists locally, we can save ourselves and HTTP request.
+	cachedRemoteInfo := image.RemoteInfo
+	getRemoteInfo := func() (*download.RemoteFileInfo, error) {
+		if cachedRemoteInfo == nil {
+			cachedRemoteInfo, _ = client.DoFileInfo(req)
+		}
+		return cachedRemoteInfo, nil
 	}
 
 	// Figure out where to store this image
-	downloadFilename, err := getDownloadFilename(image, remoteInfo)
+	downloadFilename, err := getDownloadFilename(image, getRemoteInfo)
 	if err != nil {
 		if reporter != nil {
 			reporter.ImageSkip(image, err)
@@ -129,6 +145,14 @@ func downloadImage(
 	exists, err := fileExists(destFilename)
 	if err != nil || exists {
 		// If the already exists, or we can't check for some reason, skip it.
+		if reporter != nil {
+			reporter.ImageSkip(image, err)
+		}
+		return
+	}
+
+	remoteInfo, err := getRemoteInfo()
+	if err != nil {
 		if reporter != nil {
 			reporter.ImageSkip(image, err)
 		}
