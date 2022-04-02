@@ -82,7 +82,7 @@ var getCmd = &cobra.Command{
 		downloader.Wait()
 		downloader.Close()
 
-		fmt.Println("All done")
+		reporter.Done()
 	},
 }
 

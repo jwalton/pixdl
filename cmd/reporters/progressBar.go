@@ -32,6 +32,9 @@ type progressBarReporter struct {
 	linesToErase int
 	// Map of entries that are currently downloading, indexed by URL.
 	downloading map[string]*downloadingEntry
+	downloaded  int
+	skipped     int
+	errors      int
 }
 
 // moveUp moves the cursor up the specified number of lines.
@@ -179,9 +182,11 @@ func (p *progressBarReporter) ImageSkip(image *pixdl.ImageMetadata, err error) {
 
 	var message string
 	if err == nil {
+		p.skipped++
 		message = fmt.Sprintf("%s %s", gchalk.BrightBlue("Skipped :"), p.getItemLabel(image))
 	} else {
-		message = fmt.Sprintf("%s %s: %v", gchalk.BrightBlue("Skipped :"), p.getItemLabel(image), err)
+		p.errors++
+		message = fmt.Sprintf("%s %s: %v", gchalk.BrightRed("Skipped :"), p.getItemLabel(image), err)
 	}
 	p.render(message)
 }
@@ -227,10 +232,24 @@ func (p *progressBarReporter) ImageEnd(image *pixdl.ImageMetadata, err error) {
 	delete(p.downloading, image.URL)
 	var message string
 	if err == nil {
+		p.downloaded++
 		message = gchalk.BrightGreen("Complete: ") + p.getItemLabel(image)
 	} else {
+		p.errors++
 		message = fmt.Sprintf("%s %s: %v", gchalk.BrightRed("Error   :"), p.getItemLabel(image), err)
 	}
+	p.render(message)
+}
+
+func (p *progressBarReporter) Done() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	message := fmt.Sprintf("%s %d images downloaded, %d skipped, %d errors",
+		gchalk.BrightGreen("Done    :"),
+		p.downloaded,
+		p.skipped,
+		p.errors,
+	)
 	p.render(message)
 }
 

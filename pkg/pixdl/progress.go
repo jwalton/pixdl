@@ -13,6 +13,7 @@ type ProgressReporter interface {
 	ImageStart(image *ImageMetadata)
 	ImageProgress(image *ImageMetadata, progress *download.Progress)
 	ImageEnd(image *ImageMetadata, err error)
+	Done()
 }
 
 // Returns a new download.ProgressReporter which forwards data to the passed in pixdl.ProgressReporter.

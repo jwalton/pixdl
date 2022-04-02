@@ -83,6 +83,12 @@ func (p *verboseReporter) ImageEnd(image *pixdl.ImageMetadata, err error) {
 	}
 }
 
+func (p *verboseReporter) Done() {
+	p.mutex.Lock()
+	fmt.Println("Done")
+	p.mutex.Unlock()
+}
+
 // NewVerboseReporter returns a new ProgressReporter which logs all activity to stdout.
 func NewVerboseReporter() pixdl.ProgressReporter {
 	return &verboseReporter{}
