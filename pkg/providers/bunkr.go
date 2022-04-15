@@ -42,10 +42,10 @@ func (provider bunkrProvider) FetchAlbum(env *Env, params map[string]string, url
 
 	defer resp.Body.Close()
 
-	provider.parseAlbum(url, albumID, resp.Body, callback)
+	provider.parseAlbum(env, url, albumID, resp.Body, callback)
 }
 
-func (provider bunkrProvider) parseBunkrImage(album *meta.AlbumMetadata, tokenizer *html.Tokenizer, index int) (*meta.ImageMetadata, error) {
+func (provider bunkrProvider) parseBunkrImage(env *Env, album *meta.AlbumMetadata, tokenizer *html.Tokenizer, index int) (*meta.ImageMetadata, error) {
 	image := meta.NewImageMetadata(album, index)
 	image.Page = 1
 
@@ -76,7 +76,24 @@ func (provider bunkrProvider) parseBunkrImage(album *meta.AlbumMetadata, tokeniz
 					if !ok {
 						return nil, fmt.Errorf("image has no href")
 					}
-					image.URL = href
+
+					// TODO: Would be nice if we could somehow defer fetching
+					// remote file info until after we check if the file exists
+					// locally or not.
+
+					// Some bunkr links will redirect to `https://stream.bunkr.is/v/${filename}.`
+					// If this is such a link, we want to go to `https://media-files.bunkr.is/${filename}` instead.
+					remoteInfo, err := env.GetFileInfo(href)
+					if err != nil {
+						return nil, err
+					}
+
+					if remoteInfo.URL != href && strings.HasPrefix(remoteInfo.URL, "https://stream.bunkr.is/v/") {
+						image.URL = strings.Replace(remoteInfo.URL, "https://stream.bunkr.is/v/", "https://media-files.bunkr.is/", 1)
+					} else {
+						image.URL = href
+						image.RemoteInfo = remoteInfo
+					}
 				}
 			} else if token.Data == "p" {
 				attrs := htmlutils.GetAttrMap(token.Attr)
@@ -127,6 +144,7 @@ func (provider bunkrProvider) getTextContent(tokenizer *html.Tokenizer) (string,
 }
 
 func (provider bunkrProvider) parseAlbum(
+	env *Env,
 	url string,
 	albumID string,
 	input io.Reader,
@@ -198,7 +216,7 @@ func (provider bunkrProvider) parseAlbum(
 				className := attrs["class"]
 				if strings.Contains(className, "image-container") {
 					// Parse image
-					image, err := provider.parseBunkrImage(&album, tokenizer, imageIndex)
+					image, err := provider.parseBunkrImage(env, &album, tokenizer, imageIndex)
 					if err != nil {
 						warnings = append(warnings, "Could not parse image: "+err.Error())
 					} else {

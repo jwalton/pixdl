@@ -10,17 +10,24 @@ import (
 // RemoteFileInfo represents information about a file on a remote server.
 // This is a collection of information useful in deciding how to download a file.
 type RemoteFileInfo struct {
+	// URL is the actual URL of the file.  Usually this will be the URL passed in,
+	// but if there's a redirect, this will be the URL we were ultimately redirected to.
+	URL string
 	// Size is the size of the file, or -1 if unknown.
-	Size      int64
-	Filename  string
-	MimeType  string
+	Size int64
+	// Filename is the name of the file.
+	Filename string
+	// MimeType is the MIME type returned by the server.
+	MimeType string
+	// CanResume is true if the server has a "accept-ranges: bytes" header.
 	CanResume bool
 	// Last-modified header, if present.
 	LastModified *time.Time
 }
 
-func newRemoteFileInfo() *RemoteFileInfo {
+func newRemoteFileInfo(url string) *RemoteFileInfo {
 	return &RemoteFileInfo{
+		url,
 		-1,
 		"",
 		"",
@@ -33,7 +40,7 @@ func newRemoteFileInfo() *RemoteFileInfo {
 func (client *Client) GetFileInfo(url string) (*RemoteFileInfo, error) {
 	req, err := http.NewRequest("HEAD", url, nil)
 	if err != nil {
-		return newRemoteFileInfo(), err
+		return newRemoteFileInfo(url), err
 	}
 
 	return client.DoFileInfo(req)
@@ -53,7 +60,7 @@ func (client *Client) DoFileInfo(request *http.Request) (*RemoteFileInfo, error)
 	resp, err := client.httpClient.Do(headReq)
 
 	if err != nil || resp.StatusCode != 200 {
-		return newRemoteFileInfo(), err
+		return newRemoteFileInfo(request.URL.String()), err
 	}
 
 	defer resp.Body.Close()
@@ -64,6 +71,9 @@ func (client *Client) DoFileInfo(request *http.Request) (*RemoteFileInfo, error)
 	}
 
 	return &RemoteFileInfo{
+		// Get the actual URL we ended up fetching from.  This could be different
+		// than the original URL if there was a redirect.
+		resp.Request.URL.String(),
 		resp.ContentLength,
 		getFilename(resp),
 		parseContentType(resp.Header.Get("content-type")),

@@ -39,12 +39,12 @@ func newProgress(request *http.Request, url string, filename string, remoteFileI
 }
 
 func newErrorProgress(request *http.Request, url string, filename string, remoteFileInfo *RemoteFileInfo, err error) *Progress {
-	if remoteFileInfo == nil {
-		remoteFileInfo = newRemoteFileInfo()
-	}
-
 	if request != nil {
 		url = request.URL.String()
+	}
+
+	if remoteFileInfo == nil {
+		remoteFileInfo = newRemoteFileInfo(url)
 	}
 
 	return &Progress{
