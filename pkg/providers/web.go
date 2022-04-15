@@ -4,9 +4,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jwalton/pixdl/internal/htmlutils"
 	"github.com/jwalton/pixdl/pkg/download"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
-	"github.com/jwalton/pixdl/pkg/providers/internal/htmlutils"
 	"golang.org/x/net/html"
 )
 
