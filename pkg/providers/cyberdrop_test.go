@@ -12,10 +12,13 @@ import (
 
 func TestCyberdropRegex(t *testing.T) {
 	match := cyberdropRegex.FindStringSubmatch("https://cyberdrop.me/a/abcdef")
-	if match == nil {
-		t.Error("Expected URL to match")
-		return
-	}
+	assert.NotNil(t, match, "Cyberdrop regex should match")
+
+	match = cyberdropRegex.FindStringSubmatch("https://cyberdrop.to/a/abcdef")
+	assert.NotNil(t, match, "Cyberdrop regex should match")
+
+	match = cyberdropRegex.FindStringSubmatch("https://cyberdrop.to/a/abcdef?foo=bar")
+	assert.NotNil(t, match, "Cyberdrop regex should match")
 
 	albumID := match[2]
 	if albumID != "abcdef" {

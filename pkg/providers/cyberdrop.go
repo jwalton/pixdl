@@ -15,10 +15,10 @@ import (
 
 type cyberdropProvider struct{}
 
-var cyberdropRegex = regexp.MustCompile(`^(https://)?cyberdrop.me/a/(\w*)/?$`)
+var cyberdropRegex = regexp.MustCompile(`^(https://)?cyberdrop.(?:me|to)/a/(\w*)/?(?:\?.*)?$`)
 
 func (cyberdropProvider) Name() string {
-	return "cyberdrop.me"
+	return "cyberdrop"
 }
 
 // CanDownload returns true if this downloader can download an album from the given URL.
@@ -29,7 +29,7 @@ func (cyberdropProvider) CanDownload(url string) bool {
 func (provider cyberdropProvider) FetchAlbum(env *Env, params map[string]string, url string, callback ImageCallback) {
 	match := cyberdropRegex.FindStringSubmatch(url)
 	if match == nil {
-		callback(nil, nil, fmt.Errorf("invalid cyberdrop.me URL: %s", url))
+		callback(nil, nil, fmt.Errorf("invalid cyberdrop URL: %s", url))
 		return
 	}
 
