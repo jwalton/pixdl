@@ -1,11 +1,12 @@
 package providers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/jwalton/pixdl/internal/htmlutils"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
@@ -13,6 +14,41 @@ import (
 )
 
 type bunkrProvider struct{}
+
+type bunkrPage struct {
+	// Props is the top level JSON element
+	Props struct {
+		// PageProps is properties for this album.
+		PageProps struct {
+			// Album is the album
+			Album bunkrAlbum `json:"album"`
+		} `json:"pageProps"`
+	} `json:"props"`
+}
+
+type bunkrAlbum struct {
+	// ID is the album ID.
+	ID string `json:"identifier"`
+	// Name of the album
+	Name string `json:"name"`
+	// Description of the album
+	Description string `json:"description"`
+	// Files in this album
+	Files []bunkrImage `json:"files"`
+}
+
+type bunkrImage struct {
+	// Name is the file name of the image.
+	Name string `json:"name"`
+	// Size of the image.
+	Size string `json:"size"`
+	// Timestamp is the unix timestamp this file was created at (e.g. 1618941563)
+	Timestamp int64 `json:"timestamp"`
+	// Status is the status of the request - should be "ok".
+	Status string `json:"status"`
+	// CDNUrl is the base URL to fetch the image from (e.g. "https://cdn.bunkr.is")
+	CDNUrl string `json:"cdn"`
+}
 
 var bunkrRegex = regexp.MustCompile(`^(https://)?bunkr.is/a/(\w*)/?$`)
 
@@ -45,95 +81,6 @@ func (provider bunkrProvider) FetchAlbum(env *Env, params map[string]string, url
 	provider.parseAlbum(env, url, albumID, resp.Body, callback)
 }
 
-func (provider bunkrProvider) parseBunkrImage(env *Env, album *meta.AlbumMetadata, tokenizer *html.Tokenizer, index int) (*meta.ImageMetadata, error) {
-	image := meta.NewImageMetadata(album, index)
-	image.Page = 1
-
-	sizeRegex := regexp.MustCompile(`^\s*(\d*) B\s*$`)
-
-	depth := 1
-	for depth > 0 {
-		tokenType := tokenizer.Next()
-		token := tokenizer.Token()
-
-		err := tokenizer.Err()
-		if err == io.EOF {
-			return nil, io.ErrUnexpectedEOF
-		} else if err != nil {
-			return nil, err
-		}
-
-		switch tokenType {
-		case html.StartTagToken:
-			depth = depth + 1
-
-			if token.Data == "a" {
-				attrs := htmlutils.GetAttrMap(token.Attr)
-				className := attrs["class"]
-
-				if className == "image" {
-					href, ok := attrs["href"]
-					if !ok {
-						return nil, fmt.Errorf("image has no href")
-					}
-
-					// TODO: Would be nice if we could somehow defer fetching
-					// remote file info until after we check if the file exists
-					// locally or not.
-
-					// Some bunkr links will redirect to `https://stream.bunkr.is/v/${filename}.`
-					// If this is such a link, we want to go to `https://media-files.bunkr.is/${filename}` instead.
-					remoteInfo, err := env.GetFileInfo(href)
-					if err != nil {
-						return nil, err
-					}
-
-					if remoteInfo.URL != href && strings.HasPrefix(remoteInfo.URL, "https://stream.bunkr.is/v/") {
-						image.URL = strings.Replace(remoteInfo.URL, "https://stream.bunkr.is/v/", "https://media-files.bunkr.is/", 1)
-					} else {
-						image.URL = href
-						image.RemoteInfo = remoteInfo
-					}
-				}
-			} else if token.Data == "p" {
-				attrs := htmlutils.GetAttrMap(token.Attr)
-				className := attrs["class"]
-				style := attrs["style"]
-
-				if className == "name" && style == "" {
-					text, err := provider.getTextContent(tokenizer)
-					if err == nil {
-						image.Title = text
-						image.Filename = text
-					}
-				} else if className == "file-size" {
-					text, err := provider.getTextContent(tokenizer)
-					if err == nil {
-						match := sizeRegex.FindStringSubmatch(text)
-						if match != nil {
-							size, err := strconv.ParseInt(match[1], 10, 64)
-							if err == nil {
-								image.Size = size
-							}
-						}
-					}
-				}
-			} else if token.Data == "img" {
-				// Bunkr doesn't close their img tags.
-				depth = depth - 1
-			}
-
-		case html.EndTagToken:
-			depth = depth - 1
-		}
-	}
-
-	if image.URL == "" {
-		return nil, fmt.Errorf("image has no URL")
-	}
-	return image, nil
-}
-
 func (provider bunkrProvider) getTextContent(tokenizer *html.Tokenizer) (string, error) {
 	tokenType := tokenizer.Next()
 	token := tokenizer.Token()
@@ -150,8 +97,6 @@ func (provider bunkrProvider) parseAlbum(
 	input io.Reader,
 	callback ImageCallback,
 ) {
-	bunkrCountRegex := regexp.MustCompile(`^\s*(\d*) files`)
-
 	// TODO: Do something useful with warnings.
 	warnings := []string{}
 
@@ -162,8 +107,6 @@ func (provider bunkrProvider) parseAlbum(
 		Author:          "",
 		TotalImageCount: 0,
 	}
-
-	imageIndex := 0
 
 	tokenizer := html.NewTokenizer(input)
 
@@ -184,48 +127,41 @@ func (provider bunkrProvider) parseAlbum(
 		switch tokenType {
 		case html.StartTagToken:
 			switch token.Data {
-			case "h1":
-				attrs := htmlutils.GetAttrMap(token.Attr)
-				id := attrs["id"]
-				if id == "title" {
-					// Parse the album title
-					album.Name = attrs["title"]
-				}
-			case "p":
-				id := htmlutils.GetAttr(token.Attr, "id")
-				if id == "count" {
-					// Parse the total file count
-					countText, err := provider.getTextContent(tokenizer)
-					if err == nil {
-						match := bunkrCountRegex.FindStringSubmatch(countText)
-						if match == nil {
-							warnings = append(warnings, fmt.Sprintf("Could not parse file count: %s", strings.TrimSpace(countText)))
+			case "script":
+				scriptID := htmlutils.GetAttr(token.Attr, "id")
+				if scriptID == "__NEXT_DATA__" {
+					scriptContent, err := provider.getTextContent(tokenizer)
+					if err != nil {
+						warnings = append(warnings, "Could not get text content for __NEXT_DATA__")
+					} else {
+						page := bunkrPage{}
+						err := json.Unmarshal([]byte(scriptContent), &page)
+						if err != nil {
+							warnings = append(warnings, "Error parsing content: "+err.Error())
 						} else {
-							totalCount, err := strconv.Atoi(match[1])
-							if err != nil {
-								warnings = append(warnings, fmt.Sprintf("Album has invalid file count: %s", strings.TrimSpace(countText)))
-							} else {
-								album.TotalImageCount = totalCount
+							bunkrAlbum := page.Props.PageProps.Album
+							album.Name = bunkrAlbum.Name
+							album.AlbumID = bunkrAlbum.ID
+							album.TotalImageCount = len(bunkrAlbum.Files)
+
+							for index, bunkrImage := range bunkrAlbum.Files {
+								t := time.Unix(bunkrImage.Timestamp, 0)
+								size, err := strconv.Atoi(bunkrImage.Size)
+								if err != nil {
+									size = 0
+									warnings = append(warnings, "Could not parse image size: "+bunkrImage.Size)
+								}
+
+								image := meta.NewImageMetadata(&album, index)
+								image.Filename = bunkrImage.Name
+								image.Size = int64(size)
+								image.Timestamp = &t
+								image.URL = bunkrImage.CDNUrl + "/" + bunkrImage.Name
+								callback(&album, image, nil)
 							}
 						}
 					}
-				}
 
-			case "div":
-				attrs := htmlutils.GetAttrMap(token.Attr)
-				className := attrs["class"]
-				if strings.Contains(className, "image-container") {
-					// Parse image
-					image, err := provider.parseBunkrImage(env, &album, tokenizer, imageIndex)
-					if err != nil {
-						warnings = append(warnings, "Could not parse image: "+err.Error())
-					} else {
-						imageIndex++
-						cont := callback(&album, image, err)
-						if !cont {
-							return
-						}
-					}
 				}
 			}
 		}

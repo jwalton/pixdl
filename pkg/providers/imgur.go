@@ -12,10 +12,10 @@ import (
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
 )
 
-const imgurClientId = "7c8b3491d6207b4"
+const imgurClientID = "7c8b3491d6207b4"
 
 type imgurGalleryResponse struct {
-	Id          string
+	ID          string `json:"id"`
 	Title       string
 	Description string
 	ImageCount  int64        `json:"image_count"`
@@ -61,7 +61,7 @@ func (provider imgurProvider) Get(env *Env, url string) (*http.Response, error) 
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Client-ID "+imgurClientId)
+	req.Header.Set("Authorization", "Client-ID "+imgurClientID)
 	return http.DefaultClient.Do(req)
 }
 
