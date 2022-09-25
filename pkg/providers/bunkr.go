@@ -157,6 +157,16 @@ func (provider bunkrProvider) parseAlbum(
 								image.Size = int64(size)
 								image.Timestamp = &t
 								image.URL = bunkrImage.CDNUrl + "/" + bunkrImage.Name
+
+								// Bunkr media files are actually redirects to a streaming URL.
+								fileInfo, err := env.GetFileInfo(image.URL)
+								if err == nil {
+									image.RemoteInfo = fileInfo
+									if fileInfo.URL != image.URL {
+										image.URL = "https://media-files.bunkr.is/" + bunkrImage.Name
+									}
+								}
+
 								callback(&album, image, nil)
 							}
 						}
