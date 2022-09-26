@@ -53,6 +53,9 @@ var getCmd = &cobra.Command{
 		params, err := cmd.Flags().GetStringArray("param")
 		log.PixdlDieOnError(err)
 
+		parallel, err := cmd.Flags().GetInt("parallel")
+		log.PixdlDieOnError(err)
+
 		reporter := getReporter(verbose)
 
 		if toFolder == "" {
@@ -63,7 +66,7 @@ var getCmd = &cobra.Command{
 		}
 
 		// TODO: Add option for this.
-		maxConcurrency := uint(4)
+		maxConcurrency := uint(parallel)
 
 		options := pixdl.DownloadOptions{
 			ToFolder:         toFolder,
@@ -74,7 +77,7 @@ var getCmd = &cobra.Command{
 			Params:           parseParams(params),
 		}
 
-		downloader := pixdl.NewConcurrnetDownloader(pixdl.SetMaxConcurrency(maxConcurrency))
+		downloader := pixdl.NewConcurrentDownloader(pixdl.SetMaxConcurrency(maxConcurrency))
 		downloader.DownloadAlbum(url, options, reporter)
 		downloader.Wait()
 		downloader.Close()
@@ -91,6 +94,7 @@ e.g. "{{.Album.Name}}/{{.Image.SubAlbum}}/{{.Filename}}"`)
 	getCmd.Flags().IntP("max", "n", 0, "Maximum number of images to download from album (0 for all)")
 	getCmd.Flags().Int("max-pages", 0, "Maximum number of pages to download from album (0 for all)")
 	getCmd.Flags().String("subalbum", "", "Only download images from the specified sub-album or post")
+	getCmd.Flags().Int("parallel", 4, "Maximum number of files to download concurrently")
 	getCmd.Flags().StringArrayP("param", "p", []string{}, "Specify a parameter to pass to providers")
 }
 

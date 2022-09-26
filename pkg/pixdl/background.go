@@ -19,6 +19,8 @@ type DownloadOptions struct {
 	MaxImages int
 	// MaxPages is the maximum number of pages to download.  0 for all.
 	MaxPages int
+	// Parallel is the maximum number of image to download concurrently.
+	Parallel int
 	// ToFolder is the destination folder to download images to.
 	ToFolder string
 	// FilenameTemplate is a golang template for generating the filename to write to.
@@ -89,7 +91,7 @@ func SetMinSize(size int64) Option {
 	}
 }
 
-// SetMaxConcurrency is an option for NewConcurrnetDownloader which sets the
+// SetMaxConcurrency is an option for NewConcurrentDownloader which sets the
 // maximum number of goroutines which will be spawned to download files.
 func SetMaxConcurrency(maxConcurrency uint) Option {
 	return func(dl *concurrentDownloader) {
@@ -100,10 +102,10 @@ func SetMaxConcurrency(maxConcurrency uint) Option {
 	}
 }
 
-// NewConcurrnetDownloader returns an instance of ImageDownloader which will
+// NewConcurrentDownloader returns an instance of ImageDownloader which will
 // download multiple images simultaneously in goroutines.  `maxConcurrent` is
 // the maximum number of concurrent downloads to allow at the same time.
-func NewConcurrnetDownloader(options ...Option) ImageDownloader {
+func NewConcurrentDownloader(options ...Option) ImageDownloader {
 	downloader := &concurrentDownloader{
 		env:     &providers.Env{DownloadClient: client},
 		ch:      nil,
