@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jwalton/pixdl/internal/htmlutils"
+	"github.com/jwalton/pixdl/pkg/download"
 	"github.com/jwalton/pixdl/pkg/pixdl/meta"
 	"golang.org/x/net/html"
 )
@@ -20,8 +21,10 @@ type bunkrPage struct {
 	Props struct {
 		// PageProps is properties for this album.
 		PageProps struct {
-			// Album is the album
-			Album bunkrAlbum `json:"album"`
+			// Album is present when this page is an album.
+			Album *bunkrAlbum `json:"album"`
+			// File is present when this page is for a single file.
+			File *bunkrVideo `json:"file"`
 		} `json:"pageProps"`
 	} `json:"props"`
 }
@@ -48,6 +51,19 @@ type bunkrImage struct {
 	Status string `json:"status"`
 	// CDNUrl is the base URL to fetch the image from (e.g. "https://cdn.bunkr.is")
 	CDNUrl string `json:"cdn"`
+	// RemoteInfo is info about the file, if fetched.
+	RemoteInfo *download.RemoteFileInfo
+}
+
+type bunkrVideo struct {
+	// Name is the file name of the video.
+	Name string `json:"name"`
+	// Size of the image.
+	Size string `json:"size"`
+	// MediaFiles is the base URL to fetch the video from (e.g. "https://media-files4.bunkr.is")
+	MediaFiles string `json:"mediafiles"`
+	// ImageFiles is ??? (e.g. "https://i4.bunkr.is")
+	ImageFiles string `json:"imagefiles"`
 }
 
 var bunkrRegex = regexp.MustCompile(`^(https://)?bunkr.is/a/(\w*)/?$`)
@@ -70,15 +86,84 @@ func (provider bunkrProvider) FetchAlbum(env *Env, params map[string]string, url
 
 	albumID := match[2]
 
-	resp, err := env.Get(url)
+	page, err := provider.fetchPage(env, url, true)
 	if err != nil {
 		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: %v", url, err))
 		return
 	}
 
+	provider.parseAlbum(env, url, albumID, page, callback)
+}
+
+func (provider bunkrProvider) fetchPage(env *Env, url string, findRedirects bool) (*bunkrPage, error) {
+	var page *bunkrPage = nil
+
+	resp, err := env.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
 	defer resp.Body.Close()
 
-	provider.parseAlbum(env, url, albumID, resp.Body, callback)
+	tokenizer := html.NewTokenizer(resp.Body)
+	for {
+		tokenType := tokenizer.Next()
+		token := tokenizer.Token()
+
+		err := tokenizer.Err()
+		if err == io.EOF {
+			return page, nil
+		} else if err != nil {
+			return nil, err
+		}
+
+		switch tokenType {
+		case html.StartTagToken:
+			switch token.Data {
+			case "script":
+				scriptID := htmlutils.GetAttr(token.Attr, "id")
+				if scriptID == "__NEXT_DATA__" {
+					scriptContent, err := provider.getTextContent(tokenizer)
+					if err != nil {
+						return nil, err
+					} else {
+						page = &bunkrPage{}
+						err := json.Unmarshal([]byte(scriptContent), &page)
+
+						if err != nil {
+							return nil, err
+						} else if page.Props.PageProps.Album != nil && findRedirects {
+							bunkrAlbum := page.Props.PageProps.Album
+
+							// HEAD each URL. Images sometimes redirect.  Videos will always redirect
+							// to an HTML file, and we need to parse that file.
+							for index := range bunkrAlbum.Files {
+								bunkrImage := &bunkrAlbum.Files[index]
+								imageURL := bunkrImage.CDNUrl + "/" + bunkrImage.Name
+
+								// Bunkr media files are actually redirects to a streaming URL.
+								fileInfo, err := env.GetFileInfo(imageURL)
+								if err == nil {
+									if fileInfo.MimeType == "text/html" {
+										// We've been redirected to the video player.
+										videoPage, err := provider.fetchPage(env, fileInfo.URL, false)
+										if err == nil && videoPage.Props.PageProps.File != nil {
+											video := videoPage.Props.PageProps.File
+											bunkrImage.CDNUrl = video.MediaFiles
+											bunkrImage.Name = video.Name
+										}
+									} else {
+										bunkrImage.RemoteInfo = fileInfo
+									}
+								}
+							}
+						}
+					}
+
+				}
+			}
+		}
+	}
 }
 
 func (provider bunkrProvider) getTextContent(tokenizer *html.Tokenizer) (string, error) {
@@ -94,7 +179,7 @@ func (provider bunkrProvider) parseAlbum(
 	env *Env,
 	url string,
 	albumID string,
-	input io.Reader,
+	page *bunkrPage,
 	callback ImageCallback,
 ) {
 	// TODO: Do something useful with warnings.
@@ -108,73 +193,27 @@ func (provider bunkrProvider) parseAlbum(
 		TotalImageCount: 0,
 	}
 
-	tokenizer := html.NewTokenizer(input)
+	bunkrAlbum := page.Props.PageProps.Album
+	album.Name = bunkrAlbum.Name
+	album.AlbumID = bunkrAlbum.ID
+	album.TotalImageCount = len(bunkrAlbum.Files)
 
-	for {
-		tokenType := tokenizer.Next()
-		token := tokenizer.Token()
-
-		err := tokenizer.Err()
-		if err == io.EOF {
-			// All done!
-			callback(&album, nil, nil)
-			break
-		} else if err != nil {
-			callback(&album, nil, err)
-			break
+	for index, bunkrImage := range bunkrAlbum.Files {
+		t := time.Unix(bunkrImage.Timestamp, 0)
+		size, err := strconv.Atoi(bunkrImage.Size)
+		if err != nil {
+			size = 0
+			warnings = append(warnings, "Could not parse image size: "+bunkrImage.Size)
 		}
 
-		switch tokenType {
-		case html.StartTagToken:
-			switch token.Data {
-			case "script":
-				scriptID := htmlutils.GetAttr(token.Attr, "id")
-				if scriptID == "__NEXT_DATA__" {
-					scriptContent, err := provider.getTextContent(tokenizer)
-					if err != nil {
-						warnings = append(warnings, "Could not get text content for __NEXT_DATA__")
-					} else {
-						page := bunkrPage{}
-						err := json.Unmarshal([]byte(scriptContent), &page)
-						if err != nil {
-							warnings = append(warnings, "Error parsing content: "+err.Error())
-						} else {
-							bunkrAlbum := page.Props.PageProps.Album
-							album.Name = bunkrAlbum.Name
-							album.AlbumID = bunkrAlbum.ID
-							album.TotalImageCount = len(bunkrAlbum.Files)
+		image := meta.NewImageMetadata(&album, index)
+		image.Filename = bunkrImage.Name
+		image.Size = int64(size)
+		image.Timestamp = &t
+		image.URL = bunkrImage.CDNUrl + "/" + bunkrImage.Name
+		image.RemoteInfo = bunkrImage.RemoteInfo
 
-							for index, bunkrImage := range bunkrAlbum.Files {
-								t := time.Unix(bunkrImage.Timestamp, 0)
-								size, err := strconv.Atoi(bunkrImage.Size)
-								if err != nil {
-									size = 0
-									warnings = append(warnings, "Could not parse image size: "+bunkrImage.Size)
-								}
-
-								image := meta.NewImageMetadata(&album, index)
-								image.Filename = bunkrImage.Name
-								image.Size = int64(size)
-								image.Timestamp = &t
-								image.URL = bunkrImage.CDNUrl + "/" + bunkrImage.Name
-
-								// Bunkr media files are actually redirects to a streaming URL.
-								fileInfo, err := env.GetFileInfo(image.URL)
-								if err == nil {
-									image.RemoteInfo = fileInfo
-									if fileInfo.URL != image.URL {
-										image.URL = "https://media-files.bunkr.is/" + bunkrImage.Name
-									}
-								}
-
-								callback(&album, image, nil)
-							}
-						}
-					}
-
-				}
-			}
-		}
+		callback(&album, image, nil)
 	}
 
 	if len(warnings) != 0 {
