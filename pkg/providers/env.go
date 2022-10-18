@@ -26,9 +26,18 @@ func (*Env) NewGetRequest(url string) (*http.Request, error) {
 
 // Get will fetch the contents of a URL via HTTP GET.
 func (env *Env) Get(url string) (*http.Response, error) {
+	return env.GetWithReferer(url, "")
+}
+
+// Get will fetch the contents of a URL via HTTP GET.
+func (env *Env) GetWithReferer(url string, referer string) (*http.Response, error) {
 	req, err := env.NewGetRequest(url)
 	if err != nil {
 		return nil, err
+	}
+
+	if referer != "" {
+		req.Header.Set("Referer", referer)
 	}
 
 	return http.DefaultClient.Do(req)
@@ -48,9 +57,18 @@ func (env *Env) GetHTML(url string) (*html.Node, error) {
 
 // GetFileInfo returns information about a file on a server.
 func (env *Env) GetFileInfo(url string) (*download.RemoteFileInfo, error) {
+	return env.GetFileInfoWithReferer(url, "")
+}
+
+// GetFileInfo returns information about a file on a server.
+func (env *Env) GetFileInfoWithReferer(url string, referer string) (*download.RemoteFileInfo, error) {
 	req, err := env.NewGetRequest(url)
 	if err != nil {
 		return nil, err
+	}
+
+	if referer != "" {
+		req.Header.Set("Referer", referer)
 	}
 
 	return env.DownloadClient.DoFileInfo(req)

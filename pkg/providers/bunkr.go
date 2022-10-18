@@ -14,19 +14,29 @@ import (
 	"golang.org/x/net/html"
 )
 
+const bunkrReferer = "https://stream.bunkr.is/"
+
 type bunkrProvider struct{}
 
 type bunkrPage struct {
 	// Props is the top level JSON element
-	Props struct {
-		// PageProps is properties for this album.
-		PageProps struct {
-			// Album is present when this page is an album.
-			Album *bunkrAlbum `json:"album"`
-			// File is present when this page is for a single file.
-			File *bunkrVideo `json:"file"`
-		} `json:"pageProps"`
-	} `json:"props"`
+	Props *bunkrProps `json:"props"`
+	// BuildID is the Bunkr build ID
+	BuildID string `json:"buildId"`
+	// IsFallback is true if this is a fallback data structure, and we have to load the real one.
+	IsFallback bool `json:"isFallback"`
+	// Page is either "/a/[albumId]" or "/v/[videoId]"
+	Page string `json:"page"`
+}
+
+type bunkrProps struct {
+	// PageProps is properties for this album.
+	PageProps struct {
+		// Album is present when this page is an album.
+		Album *bunkrAlbum `json:"album"`
+		// File is present when this page is for a single file.
+		File *bunkrVideo `json:"file"`
+	} `json:"pageProps"`
 }
 
 type bunkrAlbum struct {
@@ -86,7 +96,7 @@ func (provider bunkrProvider) FetchAlbum(env *Env, params map[string]string, url
 
 	albumID := match[2]
 
-	page, err := provider.fetchPage(env, url, true)
+	page, err := provider.fetchPage(env, url, albumID, true)
 	if err != nil {
 		callback(nil, nil, fmt.Errorf("unable to fetch album: %s: %v", url, err))
 		return
@@ -95,10 +105,10 @@ func (provider bunkrProvider) FetchAlbum(env *Env, params map[string]string, url
 	provider.parseAlbum(env, url, albumID, page, callback)
 }
 
-func (provider bunkrProvider) fetchPage(env *Env, url string, findRedirects bool) (*bunkrPage, error) {
+func (provider bunkrProvider) fetchPage(env *Env, url string, entityID string, findRedirects bool) (*bunkrPage, error) {
 	var page *bunkrPage = nil
 
-	resp, err := env.Get(url)
+	resp, err := env.GetWithReferer(url, bunkrReferer)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +142,23 @@ func (provider bunkrProvider) fetchPage(env *Env, url string, findRedirects bool
 
 						if err != nil {
 							return nil, err
-						} else if page.Props.PageProps.Album != nil && findRedirects {
+						}
+
+						if page.Props.PageProps.Album == nil && page.Props.PageProps.File == nil && page.IsFallback {
+							entity := "/a/" + entityID
+							if page.Page == "/v/[videoId]" {
+								entity = "/v/" + entityID
+							} else if page.Page == "/d/[name]" {
+								entity = "/d/" + entityID
+							}
+							props, err := provider.getFallback(env, page.BuildID, entity)
+							page.Props = props
+							if err != nil {
+								return nil, err
+							}
+						}
+
+						if page.Props.PageProps.Album != nil && findRedirects {
 							bunkrAlbum := page.Props.PageProps.Album
 
 							// HEAD each URL. Images sometimes redirect.  Videos will always redirect
@@ -142,11 +168,11 @@ func (provider bunkrProvider) fetchPage(env *Env, url string, findRedirects bool
 								imageURL := bunkrImage.CDNUrl + "/" + bunkrImage.Name
 
 								// Bunkr media files are actually redirects to a streaming URL.
-								fileInfo, err := env.GetFileInfo(imageURL)
+								fileInfo, err := env.GetFileInfoWithReferer(imageURL, bunkrReferer)
 								if err == nil {
 									if fileInfo.MimeType == "text/html" {
 										// We've been redirected to the video player.
-										videoPage, err := provider.fetchPage(env, fileInfo.URL, false)
+										videoPage, err := provider.fetchPage(env, fileInfo.URL, bunkrImage.Name, false)
 										if err == nil && videoPage.Props.PageProps.File != nil {
 											video := videoPage.Props.PageProps.File
 											bunkrImage.CDNUrl = video.MediaFiles
@@ -164,6 +190,32 @@ func (provider bunkrProvider) fetchPage(env *Env, url string, findRedirects bool
 			}
 		}
 	}
+}
+
+func (provider bunkrProvider) getFallback(
+	env *Env,
+	buildID string,
+	entity string,
+) (*bunkrProps, error) {
+	fallbackUrl := "https://bunkr.is/_next/data/" + buildID + entity + ".json"
+	resp, err := env.GetWithReferer(fallbackUrl, bunkrReferer)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+	}
+
+	props := bunkrProps{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&props)
+	if err != nil {
+		return nil, err
+	}
+
+	return &props, nil
 }
 
 func (provider bunkrProvider) getTextContent(tokenizer *html.Tokenizer) (string, error) {
@@ -212,6 +264,7 @@ func (provider bunkrProvider) parseAlbum(
 		image.Timestamp = &t
 		image.URL = bunkrImage.CDNUrl + "/" + bunkrImage.Name
 		image.RemoteInfo = bunkrImage.RemoteInfo
+		image.Referer = bunkrReferer
 
 		callback(&album, image, nil)
 	}

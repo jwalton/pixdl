@@ -97,6 +97,10 @@ func downloadImage(
 		return
 	}
 
+	if image.Referer != "" {
+		req.Header.Set("Referer", image.Referer)
+	}
+
 	// TODO: Allow the provider pass back a set of headers with each image.
 	// This can handle things like sites that need a referrer, or sites
 	// that need authentication.

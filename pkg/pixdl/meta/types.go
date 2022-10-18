@@ -43,6 +43,8 @@ type ImageMetadata struct {
 	// This is optional - you only need to provide it when creating an image if
 	// you already have it, so download doesn't need to get it again.
 	RemoteInfo *download.RemoteFileInfo
+	// Referer is the referer string to use when downloading this image
+	Referer string
 }
 
 // NewImageMetadata is a helper function that constructs an ImageMetadata object.

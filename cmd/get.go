@@ -94,7 +94,7 @@ e.g. "{{.Album.Name}}/{{.Image.SubAlbum}}/{{.Filename}}"`)
 	getCmd.Flags().IntP("max", "n", 0, "Maximum number of images to download from album (0 for all)")
 	getCmd.Flags().Int("max-pages", 0, "Maximum number of pages to download from album (0 for all)")
 	getCmd.Flags().String("subalbum", "", "Only download images from the specified sub-album or post")
-	getCmd.Flags().Int("parallel", 4, "Maximum number of files to download concurrently")
+	getCmd.Flags().Int("parallel", 2, "Maximum number of files to download concurrently")
 	getCmd.Flags().StringArrayP("param", "p", []string{}, "Specify a parameter to pass to providers")
 }
 
