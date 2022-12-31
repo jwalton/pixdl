@@ -140,6 +140,18 @@ func GetNodeTextContent(node *html.Node) string {
 	return result.String()
 }
 
+// GetTokenTextContent gets the next token from the tokenizer, and if it is a
+// text token, returns its content.
+func GetTokenTextContent(tokenizer *html.Tokenizer) string {
+	// Parse the total file count
+	tokenType := tokenizer.Next()
+	token := tokenizer.Token()
+	if tokenType == html.TextToken {
+		return token.Data
+	}
+	return ""
+}
+
 // ResolveURL resolves a URL relative to a parsed URL.
 // For example, calling `ResolveURL("http://foo.com/bar", "../baz")` would return
 // "http://foo.com/baz".

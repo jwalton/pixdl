@@ -51,7 +51,7 @@ type URLImageProvider interface {
 //
 // If an error occurs fetching images, this will be called with err set.
 //
-// Implemnetations can return false to stop the Provider from providing any
+// Implementations can return false to stop the Provider from providing any
 // further images.
 type ImageCallback func(
 	album *meta.AlbumMetadata,
