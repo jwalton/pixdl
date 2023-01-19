@@ -76,7 +76,7 @@ type bunkrVideo struct {
 	ImageFiles string `json:"imagefiles"`
 }
 
-var bunkrRegex = regexp.MustCompile(`^(https://)?bunkr.is/a/(\w*)/?$`)
+var bunkrRegex = regexp.MustCompile(`^(https://)?bunkr.(?:is|ru)/a/(\w*)/?$`)
 
 func (bunkrProvider) Name() string {
 	return "bunkr.is"
