@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 
@@ -205,7 +206,7 @@ func getTemplateFilename(
 	imageMetadata *ImageMetadata,
 ) (string, error) {
 	if filenameTemplate == "" {
-		return downloadFilename, nil
+		return sanitizeFilenameString(downloadFilename), nil
 	}
 
 	template, err := template.New("filename").Parse(filenameTemplate)
@@ -213,15 +214,36 @@ func getTemplateFilename(
 		return downloadFilename, err
 	}
 
+	sanitizedImage := *imageMetadata
+	sanitizedImage.Filename = sanitizeFilenameString(sanitizedImage.Filename)
+	sanitizedImage.Title = sanitizeFilenameString(sanitizedImage.Title)
+	sanitizedImage.SubAlbum = sanitizeFilenameString(sanitizedImage.SubAlbum)
+
+	sanitizedAlbum := *albumMetadata
+	sanitizedAlbum.Name = sanitizeFilenameString(sanitizedAlbum.Name)
+	sanitizedAlbum.Author = sanitizeFilenameString(sanitizedAlbum.Author)
+	sanitizedAlbum.AlbumID = sanitizeFilenameString(sanitizedAlbum.AlbumID)
+
 	var b bytes.Buffer
 	err = template.Execute(&b, map[string]interface{}{
 		"Filename": downloadFilename,
 		"Album":    albumMetadata,
-		"Image":    imageMetadata,
+		"Image":    sanitizedImage,
 	})
 	if err != nil {
 		return downloadFilename, err
 	}
 
 	return b.String(), nil
+}
+
+func sanitizeFilenameString(str string) string {
+	str = strings.ReplaceAll(str, ":", "_")
+
+	// Windows won't let you end a file name with a ".".
+	for strings.HasSuffix(str, ".") {
+		str = str[:len(str)-1]
+	}
+
+	return str
 }
